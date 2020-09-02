@@ -9,20 +9,22 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
+import blue
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'Blue'
+project = blue.__title__.title()
 copyright = '2020, Grant Jenks, Barry Warsaw'
 author = 'Grant Jenks, Barry Warsaw'
 
 # The full version, including alpha/beta/rc tags
-release = '0.3.0'
+release = blue.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -53,3 +55,8 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+
+# -- Read the Docs -----------------------------------------------------------
+
+master_doc = 'index'
