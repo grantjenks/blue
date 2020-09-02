@@ -1,4 +1,5 @@
 -e .
+black
 doc8
 flake8
 pylint
