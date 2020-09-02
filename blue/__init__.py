@@ -38,7 +38,7 @@ def normalize_string_quotes(leaf: Leaf) -> None:
         new_quote = "'"
     first_quote_pos = leaf.value.find(orig_quote)
     if first_quote_pos == -1:
-        return  # There"s an internal error
+        return  # There's an internal error
 
     prefix = leaf.value[:first_quote_pos]
     unescaped_new_quote = re.compile(rf'(([^\\]|^)(\\\\)*){new_quote}')
@@ -47,7 +47,7 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     body = leaf.value[first_quote_pos + len(orig_quote) : -len(orig_quote)]
     if 'r' in prefix.casefold():
         if unescaped_new_quote.search(body):
-            # There"s at least one unescaped new_quote in this raw string
+            # There's at least one unescaped new_quote in this raw string
             # so converting is impossible
             return
 
@@ -86,7 +86,7 @@ def normalize_string_quotes(leaf: Leaf) -> None:
         return  # Do not introduce more escaping
 
     if new_escape_count == orig_escape_count and orig_quote == "'":
-        return  # Prefer double quotes
+        return  # Prefer single quotes
 
     leaf.value = f'{prefix}{new_quote}{new_body}{new_quote}'
 
