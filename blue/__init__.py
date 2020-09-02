@@ -11,18 +11,57 @@ import black
 from black import (
     Leaf,
     STRING_PREFIX_CHARS,
-    sub_twice
+    is_multiline_string,
+    prev_siblings_are,
+    token,
+    sub_twice,
+    syms,
 )
+
+black_normalize_string_quotes = black.normalize_string_quotes
+
+
+def is_docstring(leaf: Leaf) -> bool:
+    # Most of this function was copied from Black!
+
+    if not is_multiline_string(leaf):
+        # For the purposes of docstring re-indentation, we don't need to do anything
+        # with single-line docstrings.
+        return False
+
+    if prev_siblings_are(
+        leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
+    ):
+        return True
+
+    # Multiline docstring on the same line as the `def`.
+    if prev_siblings_are(leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]):
+        # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
+        # grammar. We're safe to return True without further checks.
+        return True
+
+    if leaf.parent.prev_sibling is None:
+        # Identify module docstrings.
+        return True
+
+    return False
 
 
 def normalize_string_quotes(leaf: Leaf) -> None:
     """Prefer *single* quotes but only if it doesn't cause more escaping.
+
     Adds or removes backslashes as appropriate. Doesn't parse and fix
     strings nested in f-strings (yet).
+
     Note: Mutates its argument.
     """
-    # The whole of this function is copied from black but double quotes are
+    if is_docstring(leaf):
+        black_normalize_string_quotes(leaf)
+        return
+
+    # The remainder of this function is copied from black but double quotes are
     # swapped with single quotes in all places.
+
     value = leaf.value.lstrip(STRING_PREFIX_CHARS)
     if value[:3] == "'''":
         return
@@ -105,5 +144,5 @@ def main():
     black.main()
 
 
-__title__ = "blue"
-__version__ = "0.4.0"
+__title__ = 'blue'
+__version__ = '0.4.0'
