@@ -44,4 +44,9 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
     ],
+    entry_points={
+        'console_scripts': [
+            'blue=blue:main',
+        ]
+    },
 )
