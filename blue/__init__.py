@@ -19,6 +19,7 @@ from black import (
 )
 
 black_normalize_string_quotes = black.normalize_string_quotes
+black_format_file_in_place = black.format_file_in_place
 
 
 def is_docstring(leaf: Leaf) -> bool:
@@ -130,12 +131,18 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     leaf.value = f'{prefix}{new_quote}{new_body}{new_quote}'
 
 
+def format_file_in_place(*args, **kws):
+    black.normalize_string_quotes = normalize_string_quotes
+    return black_format_file_in_place(*args, **kws)
+
+
 def monkey_patch_black():
     """Monkey patch black.
 
     Python, I love you.
 
     """
+    black.format_file_in_place = format_file_in_place
     black.normalize_string_quotes = normalize_string_quotes
 
 
