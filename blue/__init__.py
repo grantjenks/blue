@@ -25,11 +25,6 @@ black_format_file_in_place = black.format_file_in_place
 def is_docstring(leaf: Leaf) -> bool:
     # Most of this function was copied from Black!
 
-    if not is_multiline_string(leaf):
-        # For the purposes of docstring re-indentation, we don't need to do anything
-        # with single-line docstrings.
-        return False
-
     if prev_siblings_are(
         leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
     ):
