@@ -36,7 +36,7 @@ def is_docstring(leaf: Leaf) -> bool:
         # grammar. We're safe to return True without further checks.
         return True
 
-    if leaf.parent.prev_sibling is None:
+    if leaf.parent.prev_sibling is None and leaf.column == 0:
         # Identify module docstrings.
         return True
 
