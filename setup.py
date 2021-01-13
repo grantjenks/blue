@@ -1,7 +1,8 @@
+import pathlib
+import re
+
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-
-import blue
 
 
 class Tox(TestCommand):
@@ -18,9 +19,13 @@ class Tox(TestCommand):
 with open('README.rst') as reader:
     readme = reader.read()
 
+blue_init = (pathlib.Path('blue') / '__init__.py').read_text()
+match = re.search(r"^__version__ = '(.+)'$", blue_init, re.MULTILINE)
+version = match.group(1)
+
 setup(
-    name=blue.__title__,
-    version=blue.__version__,
+    name='blue',
+    version=version,
     description='Blue -- Some folks like black but I prefer blue.',
     long_description=readme,
     author='Grant Jenks',
@@ -35,7 +40,7 @@ setup(
         'Documentation': 'https://blue.readthedocs.io/en/latest',
         'Source': 'https://github.com/grantjenks/blue.git',
         'Tracker': 'https://github.com/grantjenks/blue/issues',
-        },
+    },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -43,10 +48,10 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
     ],
     entry_points={
