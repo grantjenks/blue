@@ -74,6 +74,21 @@ authors' gracious employer, and we intend to socialize its use within our
 company code base.
 
 
+Contributors
+============
+
+``blue`` thanks this list of contributors for all its wonderful goodness.
+
+* The `wonderful folks <https://github.com/psf/black#authors>`_ from the
+  ``black`` project.
+* Grant Jenks
+* Barry Warsaw
+
+``blue`` is licensed under the terms of the Apache License Version 2.0.
+``black`` is `licensed <https://github.com/psf/black#license>`_ under the
+terms of the MIT license.
+
+
 Project details
 ===============
 
