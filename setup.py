@@ -31,6 +31,11 @@ setup(
     tests_require=['tox'],
     cmdclass={'test': Tox},
     install_requires=['black'],
+    project_urls={
+        'Documentation': 'https://blue.readthedocs.io/en/latest',
+        'Source': 'https://github.com/grantjenks/blue.git',
+        'Tracker': 'https://github.com/grantjenks/blue/issues',
+        },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
