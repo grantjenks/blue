@@ -11,7 +11,6 @@ import black
 from black import (
     Leaf,
     STRING_PREFIX_CHARS,
-    is_multiline_string,
     prev_siblings_are,
     token,
     sub_twice,
