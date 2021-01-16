@@ -147,5 +147,4 @@ def main():
     black.main()
 
 
-__title__ = 'blue'
-__version__ = '0.4.0'
+__version__ = '0.5.0'
