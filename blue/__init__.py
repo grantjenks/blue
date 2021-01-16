@@ -126,6 +126,8 @@ def normalize_string_quotes(leaf: Leaf) -> None:
 
 
 def format_file_in_place(*args, **kws):
+    # Black does some clever aync/parallelization so apply monkey patches here
+    # too.
     black.normalize_string_quotes = normalize_string_quotes
     return black_format_file_in_place(*args, **kws)
 
