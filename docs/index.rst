@@ -4,7 +4,7 @@
 Changes
 =======
 
-2021-01-15 (0.5.0)
+2021-01-16 (0.5.1)
 ------------------
 
 * Change --target-version help and default line length to 79 (GH#16)
