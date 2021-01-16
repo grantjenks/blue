@@ -15,6 +15,7 @@ from black import (
     token,
     sub_twice,
     syms,
+    toml,
 )
 
 from typing import Dict, Any
@@ -32,9 +33,11 @@ def is_docstring(leaf: Leaf) -> bool:
         return True
 
     # Multiline docstring on the same line as the `def`.
-    if prev_siblings_are(leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]):
-        # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
-        # grammar. We're safe to return True without further checks.
+    if prev_siblings_are(
+        leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]
+    ):
+        # `syms.parameters` is only used in funcdefs and async_funcdefs in the
+        # Python grammar. We're safe to return True without further checks.
         return True
 
     if leaf.parent.prev_sibling is None and leaf.column == 0:
@@ -96,12 +99,16 @@ def normalize_string_quotes(leaf: Leaf) -> None:
             # Consider the string without unnecessary escapes as the original
             body = new_body
             leaf.value = f'{prefix}{orig_quote}{body}{orig_quote}'
-        new_body = sub_twice(escaped_orig_quote, rf'\1\2{orig_quote}', new_body)
-        new_body = sub_twice(unescaped_new_quote, rf'\1\\{new_quote}', new_body)
+        new_body = sub_twice(
+            escaped_orig_quote, rf'\1\2{orig_quote}', new_body
+        )
+        new_body = sub_twice(
+            unescaped_new_quote, rf'\1\\{new_quote}', new_body
+        )
     if 'f' in prefix.casefold():
         matches = re.findall(
             r'''
-            (?:[^{]|^)\{  # start of the string or a non-{ followed by a single {
+            (?:[^{]|^)\{  # start of the str or a non-{ followed by a single {
                 ([^{].*?)  # contents of the brackets except if begins with {{
             \}(?:[^}]|$)  # A } followed by end of the string or a non-}
             ''',
@@ -143,7 +150,9 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     # Most of this function was copied from Black!
     pyproject_toml = toml.load(path_config)
     config = pyproject_toml.get('tool', {}).get('blue', {})
-    return {k.replace('--', '').replace('-', '_'): v for k, v in config.items()}
+    return {
+        k.replace('--', '').replace('-', '_'): v for k, v in config.items()
+    }
 
 
 def monkey_patch_black():
