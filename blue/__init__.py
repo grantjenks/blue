@@ -17,6 +17,8 @@ from black import (
     syms,
 )
 
+from typing import Dict, Any
+
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
 
@@ -132,6 +134,18 @@ def format_file_in_place(*args, **kws):
     return black_format_file_in_place(*args, **kws)
 
 
+def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
+    """Parse a pyproject toml file, pulling out relevant parts for Blue
+
+    If parsing fails, will raise a toml.TomlDecodeError
+
+    """
+    # Most of this function was copied from Black!
+    pyproject_toml = toml.load(path_config)
+    config = pyproject_toml.get('tool', {}).get('blue', {})
+    return {k.replace('--', '').replace('-', '_'): v for k, v in config.items()}
+
+
 def monkey_patch_black():
     """Monkey patch black.
 
@@ -140,6 +154,7 @@ def monkey_patch_black():
     """
     black.format_file_in_place = format_file_in_place
     black.normalize_string_quotes = normalize_string_quotes
+    black.parse_pyproject_toml = parse_pyproject_toml
 
 
 def main():
