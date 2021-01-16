@@ -10,18 +10,25 @@ import black
 
 from black import (
     Leaf,
+    Path,
     STRING_PREFIX_CHARS,
     prev_siblings_are,
-    token,
     sub_twice,
     syms,
+    token,
     toml,
+    user_cache_dir,
 )
 
 from typing import Dict, Any
 
+__version__ = '0.5.0'
+
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
+
+# Try not to poison Black's cache directory.
+black.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
 
 
 def is_docstring(leaf: Leaf) -> bool:
@@ -169,6 +176,3 @@ def monkey_patch_black():
 def main():
     monkey_patch_black()
     black.main()
-
-
-__version__ = '0.5.0'
