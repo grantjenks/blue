@@ -171,6 +171,16 @@ def monkey_patch_black():
     black.format_file_in_place = format_file_in_place
     black.normalize_string_quotes = normalize_string_quotes
     black.parse_pyproject_toml = parse_pyproject_toml
+    # Change the default line length to 79 characters.
+    line_length_param = black.main.params[1]
+    assert line_length_param.name == 'line_length'
+    line_length_param.default = 79
+    # Change the target version help doc to mention "Blue", not "Black".
+    target_version_param = black.main.params[2]
+    assert target_version_param.name == 'target_version'
+    target_version_param.help = target_version_param.help.replace(
+        'Black', 'Blue'
+    )
 
 
 def main():
