@@ -92,6 +92,9 @@ terms of the MIT license.
 Project details
 ===============
 
+.. image:: https://github.com/grantjenks/blue/workflows/integration/badge.svg
+   :target: https://blue.readthedocs.io/en/latest/
+
 * Project home: https://github.com/grantjenks/blue
 * Report bugs and suggestions at: https://github.com/grantjenks/blue/issues
 * Code hosting: https://github.com/grantjenks/blue.git
