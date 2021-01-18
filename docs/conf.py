@@ -19,7 +19,7 @@ import blue
 
 # -- Project information -----------------------------------------------------
 
-project = blue.__title__.title()
+project = 'Blue'
 copyright = '2020, Grant Jenks, Barry Warsaw'
 author = 'Grant Jenks, Barry Warsaw'
 
