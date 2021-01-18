@@ -22,7 +22,7 @@ from black import (
 
 from typing import Dict, Any
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place

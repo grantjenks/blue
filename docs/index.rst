@@ -4,6 +4,13 @@
 Changes
 =======
 
+
+2021-01-17 (0.5.2)
+------------------
+
+- Fix reference to blue.__title__ when building docs (GH#26)
+
+
 2021-01-16 (0.5.1)
 ------------------
 
