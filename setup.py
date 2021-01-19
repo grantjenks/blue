@@ -13,6 +13,7 @@ class Tox(TestCommand):
 
     def run_tests(self):
         import tox
+
         errno = tox.cmdline(self.test_args)
         exit(errno)
 
