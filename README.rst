@@ -51,6 +51,10 @@ Here is a brief list of differences between ``blue`` and ``black``:
   quoted strings for docstrings; it just looks better to us!  For all other
   strings, ``blue`` defaults to single quoted strings.
 
+* ``blue`` defaults to line lengths of 79 characters. Nearly every project
+  creates a pyproject.toml just to change this one setting so making it
+  consistent with PEP 8 seems relatively harmless.
+
 We are `accumulating <https://github.com/grantjenks/blue/issues/2>`_ a list of
 other deviations we are considering.  As we decide to implement any particular
 suggestion, we'll turn those into individual issues and tackle them
