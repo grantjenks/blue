@@ -94,6 +94,9 @@ terms of the MIT license.
 Project details
 ===============
 
+.. image:: https://img.shields.io/badge/code%20style-blue-blue.svg
+   :target: https://blue.readthedocs.io/
+
 .. image:: https://github.com/grantjenks/blue/workflows/integration/badge.svg
    :target: https://github.com/grantjenks/blue/actions?query=workflow%3Aintegration
 
