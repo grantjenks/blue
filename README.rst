@@ -83,6 +83,8 @@ Contributors
   ``black`` project.
 * Grant Jenks
 * Barry Warsaw
+* Corey from FutureSpaceDesigns for the unofficial logo and `blue project
+  merchandise <https://www.teepublic.com/t-shirt/6556561-tobias-blue>`_.
 
 ``blue`` is licensed under the terms of the Apache License Version 2.0.
 ``black`` is `licensed <https://github.com/psf/black#license>`_ under the
@@ -94,6 +96,9 @@ Project details
 
 .. image:: https://github.com/grantjenks/blue/workflows/integration/badge.svg
    :target: https://github.com/grantjenks/blue/actions?query=workflow%3Aintegration
+
+.. image:: https://github.com/grantjenks/blue/workflows/release/badge.svg
+   :target: https://github.com/grantjenks/blue/actions?query=workflow%3Arelease
 
 * Project home: https://github.com/grantjenks/blue
 * Report bugs and suggestions at: https://github.com/grantjenks/blue/issues
