@@ -7,9 +7,9 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      max-parallel: 5
       matrix:
-        check: [doc8, docs, flake8, rstcheck]
+        check: [bluecheck, doc8, flake8, rstcheck, docs]
 
     steps:
     - uses: actions/checkout@v2
