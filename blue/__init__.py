@@ -11,7 +11,10 @@ import black
 from black import (
     Leaf,
     Path,
+    ProtoComment,
+    STANDALONE_COMMENT,
     STRING_PREFIX_CHARS,
+    make_comment,
     prev_siblings_are,
     sub_twice,
     syms,
@@ -20,9 +23,11 @@ from black import (
     user_cache_dir,
 )
 
-from typing import Dict, Any
+from functools import lru_cache
 
-__version__ = '0.5.2'
+from typing import Any, Dict, List
+
+__version__ = '0.6.0'
 
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
@@ -162,6 +167,49 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     }
 
 
+# Like black's list_comments() but preserves whitespace leading up to the hash
+# mark.  Because what we really need to do is restore the whitespace after the
+# line.lstrip() statement, there really is no good way to more narrowly
+# monkeypatch.  This would be a good hook to install.  See
+# https://github.com/grantjenks/blue/issues/14
+@lru_cache(maxsize=4096)
+def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
+    """Return a list of :class:`ProtoComment` objects parsed from the given `prefix`."""
+    result: List[ProtoComment] = []
+    if not prefix or "#" not in prefix:
+        return result
+
+    consumed = 0
+    nlines = 0
+    ignored_lines = 0
+    for index, original_line in enumerate(prefix.split("\n")):
+        consumed += len(original_line) + 1  # adding the length of the split '\n'
+        line = original_line.lstrip()
+        breakpoint()
+        if not line:
+            nlines += 1
+        if not line.startswith("#"):
+            # Escaped newlines outside of a comment are not really newlines at
+            # all. We treat a single-line comment following an escaped newline
+            # as a simple trailing comment.
+            if line.endswith("\\"):
+                ignored_lines += 1
+            continue
+
+        if index == ignored_lines and not is_endmarker:
+            comment_type = token.COMMENT  # simple trailing comment
+        else:
+            comment_type = STANDALONE_COMMENT
+        comment = original_line[:-len(line)] + make_comment(line)
+        result.append(
+            ProtoComment(
+                type=comment_type, value=comment, newlines=nlines, consumed=consumed
+            )
+        )
+        nlines = 0
+    return result
+
+
 def monkey_patch_black():
     """Monkey patch black.
 
@@ -171,6 +219,7 @@ def monkey_patch_black():
     black.format_file_in_place = format_file_in_place
     black.normalize_string_quotes = normalize_string_quotes
     black.parse_pyproject_toml = parse_pyproject_toml
+    black.list_comments = list_comments
     # Change the default line length to 79 characters.
     line_length_param = black.main.params[1]
     assert line_length_param.name == 'line_length'
