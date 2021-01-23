@@ -4,6 +4,7 @@ Some folks like black but I prefer blue.
 
 """
 
+import logging
 import re
 import sys
 
@@ -23,6 +24,8 @@ from black import (
     toml,
     user_cache_dir,
 )
+from flake8.options import config as flake8_config
+from flake8.options import manager as flake8_manager
 
 from enum import Enum
 from functools import lru_cache
@@ -32,6 +35,8 @@ from click.decorators import version_option
 
 
 __version__ = '0.6.0'
+
+LOG = logging.getLogger(__name__)
 
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
@@ -213,18 +218,39 @@ def format_file_in_place(*args, **kws):
     return black_format_file_in_place(*args, **kws)
 
 
+class MergedConfigParser(flake8_config.MergedConfigParser):
+    def _parse_config(self, config_parser, parent=None):
+        """Skip option parsing in flake8's config parsing."""
+        config_dict = {}
+        for option_name in config_parser.options(self.program_name):
+            value = config_parser.get(self.program_name, option_name)
+            LOG.debug('Option "%s" has value: %r', option_name, value)
+            config_dict[option_name] = value
+        return config_dict
+
+
 def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     """Parse a pyproject toml file, pulling out relevant parts for Blue
 
     If parsing fails, will raise a toml.TomlDecodeError
 
     """
-    # Most of this function was copied from Black!
+    # Parse pyproject_toml and fixup the keys.
     pyproject_toml = toml.load(path_config)
-    config = pyproject_toml.get('tool', {}).get('blue', {})
-    return {
-        k.replace('--', '').replace('-', '_'): v for k, v in config.items()
+    toml_config = pyproject_toml.get('tool', {}).get('blue', {})
+    config = {
+        k.replace('--', '').replace('-', '_'): v
+        for k, v in toml_config.items()
     }
+    # Use flake8's config file parsing to load setup.cfg, tox.ini, and .blue
+    # The parsing looks both in the project and user directories.
+    finder = flake8_config.ConfigFileFinder('blue')
+    manager = flake8_manager.OptionManager('blue', '0')
+    parser = MergedConfigParser(manager, finder)
+    parser_config = parser.parse()
+    config.update(parser_config)
+    print('Config:', config)
+    return config
 
 
 # Like black's list_comments() but preserves whitespace leading up to the hash
