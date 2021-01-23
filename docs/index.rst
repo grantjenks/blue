@@ -5,6 +5,13 @@ Changes
 =======
 
 
+2021-XX-XX (0.6.0)
+------------------
+
+- Preserve the whitespace before the hash mark for right hanging comments.
+  (GH#20)
+
+
 2021-01-17 (0.5.2)
 ------------------
 

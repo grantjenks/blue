@@ -55,6 +55,9 @@ Here is a brief list of differences between ``blue`` and ``black``:
   creates a pyproject.toml just to change this one setting so making it
   consistent with PEP 8 seems relatively harmless.
 
+* ``blue`` preserves the whitespace before the hash mark for right hanging
+  comments.
+
 We are `accumulating <https://github.com/grantjenks/blue/issues/2>`_ a list of
 other deviations we are considering.  As we decide to implement any particular
 suggestion, we'll turn those into individual issues and tackle them
