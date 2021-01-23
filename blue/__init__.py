@@ -174,7 +174,6 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
 # https://github.com/grantjenks/blue/issues/14
 @lru_cache(maxsize=4096)
 def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
-    """Return a list of :class:`ProtoComment` objects parsed from the given `prefix`."""
     result: List[ProtoComment] = []
     if not prefix or "#" not in prefix:
         return result
@@ -182,9 +181,9 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
     consumed = 0
     nlines = 0
     ignored_lines = 0
-    for index, original_line in enumerate(prefix.split("\n")):
-        consumed += len(original_line) + 1  # adding the length of the split '\n'
-        line = original_line.lstrip()
+    for index, orig_line in enumerate(prefix.split("\n")):
+        consumed += len(orig_line) + 1  # adding the length of the split '\n'
+        line = orig_line.lstrip()
         breakpoint()
         if not line:
             nlines += 1
@@ -200,10 +199,12 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
             comment_type = token.COMMENT  # simple trailing comment
         else:
             comment_type = STANDALONE_COMMENT
-        comment = original_line[:-len(line)] + make_comment(line)
+        # Restore the original whitespace.
+        comment = orig_line[:-len(line)] + make_comment(line)
         result.append(
             ProtoComment(
-                type=comment_type, value=comment, newlines=nlines, consumed=consumed
+                type=comment_type, value=comment, newlines=nlines,
+                consumed=consumed
             )
         )
         nlines = 0
