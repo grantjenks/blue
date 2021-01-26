@@ -65,7 +65,7 @@ BLUE_MONKEYPATCHES = [
     # Asynchronous Monkees.
     ('normalize_string_quotes', Mode.asynchronous),
     ('list_comments', Mode.asynchronous),
-    ]
+]
 
 
 def monkey_patch_black(mode: Mode) -> None:
