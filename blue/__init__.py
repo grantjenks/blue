@@ -5,6 +5,7 @@ Some folks like black but I prefer blue.
 """
 
 import re
+import sys
 
 import black
 
@@ -23,6 +24,7 @@ from black import (
     user_cache_dir,
 )
 
+from enum import Enum
 from functools import lru_cache
 
 from typing import Any, Dict, List
@@ -34,6 +36,43 @@ black_format_file_in_place = black.format_file_in_place
 
 # Try not to poison Black's cache directory.
 black.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
+
+
+# Blue works by monkey patching black, so we don't have to duplicate
+# everything, and we can take advantage of black's excellent implementation.
+# We still have to monkey patch more than we want so eventually, these ought
+# to be implemented by hooks in black that we can set.  Until then, there are
+# essentially two modes of black operation we have to deal with.
+#
+# When black is formatting a single file, it's easy to monkey patch at an entry
+# point for blue.  But when formatting multiple files, black uses some clever
+# asynchronous parallelization which prevents us from monkey patching a few
+# things in the blue entry point.  By way of code inspection and
+# experimentation, we've found a convenient place to monkey patch a few things
+# after the subprocesses have been spawned.  Define your monkey patch points
+# here.
+
+class Mode(Enum):
+    asynchronous = 1
+    synchronous = 2
+
+
+BLUE_MONKEYPATCHES = [
+    # Synchronous Monkees.
+    ('format_file_in_place', Mode.synchronous),
+    ('normalize_string_quotes', Mode.synchronous),
+    ('parse_pyproject_toml', Mode.synchronous),
+    # Asynchronous Monkees.
+    ('normalize_string_quotes', Mode.asynchronous),
+    ('list_comments', Mode.asynchronous),
+    ]
+
+
+def monkey_patch_black(mode: Mode) -> None:
+    blue = sys.modules['blue']
+    for function_name, monkey_mode in BLUE_MONKEYPATCHES:
+        if monkey_mode is mode:
+            setattr(black, function_name, getattr(blue, function_name))
 
 
 def is_docstring(leaf: Leaf) -> bool:
@@ -147,11 +186,9 @@ def normalize_string_quotes(leaf: Leaf) -> None:
 
 
 def format_file_in_place(*args, **kws):
-    # Black does some clever aync/parallelization so apply some monkey patches
-    # here too.  We figure this out by looking at what works when formatting a
-    # single file vs multiple files.
-    black.normalize_string_quotes = normalize_string_quotes
-    black.list_comments = list_comments
+    # This is a convenient place to monkey patch any function that must be
+    # done after black's asynchronous invocation.
+    monkey_patch_black(Mode.asynchronous)
     return black_format_file_in_place(*args, **kws)
 
 
@@ -226,15 +263,8 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
     return result
 
 
-def monkey_patch_black():
-    """Monkey patch black.
-
-    Python, I love you.
-
-    """
-    black.format_file_in_place = format_file_in_place
-    black.normalize_string_quotes = normalize_string_quotes
-    black.parse_pyproject_toml = parse_pyproject_toml
+def main():
+    monkey_patch_black(Mode.synchronous)
     # Change the default line length to 79 characters.
     line_length_param = black.main.params[1]
     assert line_length_param.name == 'line_length'
@@ -245,8 +275,4 @@ def monkey_patch_black():
     target_version_param.help = target_version_param.help.replace(
         'Black', 'Blue'
     )
-
-
-def main():
-    monkey_patch_black()
     black.main()
