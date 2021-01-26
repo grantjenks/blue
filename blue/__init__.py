@@ -147,9 +147,11 @@ def normalize_string_quotes(leaf: Leaf) -> None:
 
 
 def format_file_in_place(*args, **kws):
-    # Black does some clever aync/parallelization so apply monkey patches here
-    # too.
+    # Black does some clever aync/parallelization so apply some monkey patches
+    # here too.  We figure this out by looking at what works when formatting a
+    # single file vs multiple files.
     black.normalize_string_quotes = normalize_string_quotes
+    black.list_comments = list_comments
     return black_format_file_in_place(*args, **kws)
 
 
@@ -233,7 +235,6 @@ def monkey_patch_black():
     black.format_file_in_place = format_file_in_place
     black.normalize_string_quotes = normalize_string_quotes
     black.parse_pyproject_toml = parse_pyproject_toml
-    black.list_comments = list_comments
     # Change the default line length to 79 characters.
     line_length_param = black.main.params[1]
     assert line_length_param.name == 'line_length'
