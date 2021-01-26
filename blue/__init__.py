@@ -184,7 +184,6 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
     for index, orig_line in enumerate(prefix.split("\n")):
         consumed += len(orig_line) + 1  # adding the length of the split '\n'
         line = orig_line.lstrip()
-        breakpoint()
         if not line:
             nlines += 1
         if not line.startswith("#"):
@@ -199,8 +198,22 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
             comment_type = token.COMMENT  # simple trailing comment
         else:
             comment_type = STANDALONE_COMMENT
-        # Restore the original whitespace.
-        comment = orig_line[:-len(line)] + make_comment(line)
+        # Restore the original whitespace, but only for hanging comments.  We
+        # use a heuristic to figure out hanging comments since that information
+        # isn't explicitly passed in here (no, `is_endmarker` doesn't tell us,
+        # apparently).  Hanging comments seem to not have a newline in prefix.
+        #
+        # Note however that the whitespace() function in black will add back
+        # two leading spaces (see DOUBLESPACE).  Rather than monkey patch the
+        # entire function, let's just remove up to two spaces before the hash
+        # character.
+        if '\n' not in prefix:
+            whitespace = orig_line[:-len(line)]
+            if len(whitespace) >= 2:
+                whitespace = whitespace[2:]
+            comment = whitespace + make_comment(line)
+        else:
+            comment = make_comment(line)
         result.append(
             ProtoComment(
                 type=comment_type, value=comment, newlines=nlines,
