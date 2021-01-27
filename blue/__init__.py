@@ -52,6 +52,7 @@ black.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
 # after the subprocesses have been spawned.  Define your monkey patch points
 # here.
 
+
 class Mode(Enum):
     asynchronous = 1
     synchronous = 2
@@ -75,6 +76,12 @@ def monkey_patch_black(mode: Mode) -> None:
             setattr(black, function_name, getattr(blue, function_name))
 
 
+# Because blue makes different choices than black, and all of this code is
+# essentially ripped off from black, applying blue to it will change the
+# formatting.  That will make diff'ing with black more difficult, so just turn
+# off formatting for anything that comes from black.
+
+# fmt: off
 def is_docstring(leaf: Leaf) -> bool:
     # Most of this function was copied from Black!
 
@@ -261,6 +268,7 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
         )
         nlines = 0
     return result
+# fmt: on
 
 
 def main():
