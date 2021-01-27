@@ -5,13 +5,17 @@ Some folks like black but I prefer blue.
 """
 
 import re
+import sys
 
 import black
 
 from black import (
     Leaf,
     Path,
+    ProtoComment,
+    STANDALONE_COMMENT,
     STRING_PREFIX_CHARS,
+    make_comment,
     prev_siblings_are,
     sub_twice,
     syms,
@@ -20,9 +24,12 @@ from black import (
     user_cache_dir,
 )
 
-from typing import Dict, Any
+from enum import Enum
+from functools import lru_cache
 
-__version__ = '0.5.2'
+from typing import Any, Dict, List
+
+__version__ = '0.6.0'
 
 black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
@@ -31,6 +38,50 @@ black_format_file_in_place = black.format_file_in_place
 black.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
 
 
+# Blue works by monkey patching black, so we don't have to duplicate
+# everything, and we can take advantage of black's excellent implementation.
+# We still have to monkey patch more than we want so eventually, these ought
+# to be implemented by hooks in black that we can set.  Until then, there are
+# essentially two modes of black operation we have to deal with.
+#
+# When black is formatting a single file, it's easy to monkey patch at an entry
+# point for blue.  But when formatting multiple files, black uses some clever
+# asynchronous parallelization which prevents us from monkey patching a few
+# things in the blue entry point.  By way of code inspection and
+# experimentation, we've found a convenient place to monkey patch a few things
+# after the subprocesses have been spawned.  Define your monkey patch points
+# here.
+
+
+class Mode(Enum):
+    asynchronous = 1
+    synchronous = 2
+
+
+BLUE_MONKEYPATCHES = [
+    # Synchronous Monkees.
+    ('format_file_in_place', Mode.synchronous),
+    ('normalize_string_quotes', Mode.synchronous),
+    ('parse_pyproject_toml', Mode.synchronous),
+    # Asynchronous Monkees.
+    ('normalize_string_quotes', Mode.asynchronous),
+    ('list_comments', Mode.asynchronous),
+]
+
+
+def monkey_patch_black(mode: Mode) -> None:
+    blue = sys.modules['blue']
+    for function_name, monkey_mode in BLUE_MONKEYPATCHES:
+        if monkey_mode is mode:
+            setattr(black, function_name, getattr(blue, function_name))
+
+
+# Because blue makes different choices than black, and all of this code is
+# essentially ripped off from black, applying blue to it will change the
+# formatting.  That will make diff'ing with black more difficult, so just turn
+# off formatting for anything that comes from black.
+
+# fmt: off
 def is_docstring(leaf: Leaf) -> bool:
     # Most of this function was copied from Black!
 
@@ -142,9 +193,9 @@ def normalize_string_quotes(leaf: Leaf) -> None:
 
 
 def format_file_in_place(*args, **kws):
-    # Black does some clever aync/parallelization so apply monkey patches here
-    # too.
-    black.normalize_string_quotes = normalize_string_quotes
+    # This is a convenient place to monkey patch any function that must be
+    # done after black's asynchronous invocation.
+    monkey_patch_black(Mode.asynchronous)
     return black_format_file_in_place(*args, **kws)
 
 
@@ -162,15 +213,66 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     }
 
 
-def monkey_patch_black():
-    """Monkey patch black.
+# Like black's list_comments() but preserves whitespace leading up to the hash
+# mark.  Because what we really need to do is restore the whitespace after the
+# line.lstrip() statement, there really is no good way to more narrowly
+# monkeypatch.  This would be a good hook to install.  See
+# https://github.com/grantjenks/blue/issues/14
+@lru_cache(maxsize=4096)
+def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
+    result: List[ProtoComment] = []
+    if not prefix or "#" not in prefix:
+        return result
 
-    Python, I love you.
+    consumed = 0
+    nlines = 0
+    ignored_lines = 0
+    for index, orig_line in enumerate(prefix.split("\n")):
+        consumed += len(orig_line) + 1  # adding the length of the split '\n'
+        line = orig_line.lstrip()
+        if not line:
+            nlines += 1
+        if not line.startswith("#"):
+            # Escaped newlines outside of a comment are not really newlines at
+            # all. We treat a single-line comment following an escaped newline
+            # as a simple trailing comment.
+            if line.endswith("\\"):
+                ignored_lines += 1
+            continue
 
-    """
-    black.format_file_in_place = format_file_in_place
-    black.normalize_string_quotes = normalize_string_quotes
-    black.parse_pyproject_toml = parse_pyproject_toml
+        if index == ignored_lines and not is_endmarker:
+            comment_type = token.COMMENT  # simple trailing comment
+        else:
+            comment_type = STANDALONE_COMMENT
+        # Restore the original whitespace, but only for hanging comments.  We
+        # use a heuristic to figure out hanging comments since that information
+        # isn't explicitly passed in here (no, `is_endmarker` doesn't tell us,
+        # apparently).  Hanging comments seem to not have a newline in prefix.
+        #
+        # Note however that the whitespace() function in black will add back
+        # two leading spaces (see DOUBLESPACE).  Rather than monkey patch the
+        # entire function, let's just remove up to two spaces before the hash
+        # character.
+        if '\n' not in prefix:
+            whitespace = orig_line[:-len(line)]
+            if len(whitespace) >= 2:
+                whitespace = whitespace[2:]
+            comment = whitespace + make_comment(line)
+        else:
+            comment = make_comment(line)
+        result.append(
+            ProtoComment(
+                type=comment_type, value=comment, newlines=nlines,
+                consumed=consumed
+            )
+        )
+        nlines = 0
+    return result
+# fmt: on
+
+
+def main():
+    monkey_patch_black(Mode.synchronous)
     # Change the default line length to 79 characters.
     line_length_param = black.main.params[1]
     assert line_length_param.name == 'line_length'
@@ -181,8 +283,4 @@ def monkey_patch_black():
     target_version_param.help = target_version_param.help.replace(
         'Black', 'Blue'
     )
-
-
-def main():
-    monkey_patch_black()
     black.main()
