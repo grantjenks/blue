@@ -78,9 +78,16 @@ def monkey_patch_black(mode: Mode) -> None:
             setattr(black, function_name, getattr(blue, function_name))
     # Reach in and monkey patch the --version string.  This is tricky based on
     # the way click works!  This is highly fragile because the index into the
-    # click parameters is dependent on the decorator order for black's main().
-    version_string = f'{__version__}, based on black {black.__version__}'
-    black.main.params[-3].callback = version_option(version_string)(black.main)
+    # click parameters is dependent on the decorator order for black's
+    # main().  Because this is a horrible hack, it breaks if you do anything
+    # other than `blue --version`, so don't install this hack unless you need
+    # to.  Fortunately, if you're doing `blue --version` you aren't doing
+    # anything else (and click exits, so we're good).
+    if '--version' in sys.argv:
+        version_string = f'{__version__}, based on black {black.__version__}'
+        black.main.params[-3].callback = version_option(version_string)(
+            black.main
+        )
 
 
 # Because blue makes different choices than black, and all of this code is
