@@ -26,8 +26,10 @@ from black import (
 
 from enum import Enum
 from functools import lru_cache
-
 from typing import Any, Dict, List
+
+from click.decorators import version_option
+
 
 __version__ = '0.6.0'
 
@@ -74,6 +76,11 @@ def monkey_patch_black(mode: Mode) -> None:
     for function_name, monkey_mode in BLUE_MONKEYPATCHES:
         if monkey_mode is mode:
             setattr(black, function_name, getattr(blue, function_name))
+    # Reach in and monkey patch the --version string.  This is tricky based on
+    # the way click works!  This is highly fragile because the index into the
+    # click parameters is dependent on the decorator order for black's main().
+    version_string = f'{__version__}, based on black {black.__version__}'
+    black.main.params[-3].callback = version_option(version_string)(black.main)
 
 
 # Because blue makes different choices than black, and all of this code is
