@@ -10,6 +10,8 @@ Changes
 
 - Preserve the whitespace before the hash mark for right hanging comments.
   (GH#20)
+- Support multiple config files: pyproject.toml, setup.cfg, tox.ini, and .blue
+  (GH#30)
 
 
 2021-01-17 (0.5.2)
