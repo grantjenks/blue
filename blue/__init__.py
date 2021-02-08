@@ -218,41 +218,6 @@ def format_file_in_place(*args, **kws):
     return black_format_file_in_place(*args, **kws)
 
 
-class MergedConfigParser(flake8_config.MergedConfigParser):
-    def _parse_config(self, config_parser, parent=None):
-        """Skip option parsing in flake8's config parsing."""
-        config_dict = {}
-        for option_name in config_parser.options(self.program_name):
-            value = config_parser.get(self.program_name, option_name)
-            LOG.debug('Option "%s" has value: %r', option_name, value)
-            config_dict[option_name] = value
-        return config_dict
-
-
-def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
-    """Parse a pyproject toml file, pulling out relevant parts for Blue
-
-    If parsing fails, will raise a toml.TomlDecodeError
-
-    """
-    # Parse pyproject_toml and fixup the keys.
-    pyproject_toml = toml.load(path_config)
-    toml_config = pyproject_toml.get('tool', {}).get('blue', {})
-    config = {
-        k.replace('--', '').replace('-', '_'): v
-        for k, v in toml_config.items()
-    }
-    # Use flake8's config file parsing to load setup.cfg, tox.ini, and .blue
-    # The parsing looks both in the project and user directories.
-    finder = flake8_config.ConfigFileFinder('blue')
-    manager = flake8_manager.OptionManager('blue', '0')
-    parser = MergedConfigParser(manager, finder)
-    parser_config = parser.parse()
-    config.update(parser_config)
-    print('Config:', config)
-    return config
-
-
 # Like black's list_comments() but preserves whitespace leading up to the hash
 # mark.  Because what we really need to do is restore the whitespace after the
 # line.lstrip() statement, there really is no good way to more narrowly
@@ -308,7 +273,51 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
         )
         nlines = 0
     return result
+
+
+def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
+    """Parse a pyproject toml file, pulling out relevant parts for Black
+
+    If parsing fails, will raise a toml.TomlDecodeError
+    """
+    pyproject_toml = toml.load(path_config)
+    # Read the "blue" section of pyproject.toml for configs.
+    config = pyproject_toml.get("tool", {}).get("blue", {})
+    return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
 # fmt: on
+
+
+class MergedConfigParser(flake8_config.MergedConfigParser):
+    def _parse_config(self, config_parser, parent=None):
+        """Skip option parsing in flake8's config parsing."""
+        config_dict = {}
+        for option_name in config_parser.options(self.program_name):
+            value = config_parser.get(self.program_name, option_name)
+            LOG.debug('Option "%s" has value: %r', option_name, value)
+            config_dict[option_name] = value
+        return config_dict
+
+
+def read_configs(
+    ctx: click.Context, param: click.Parameter, value: Optional[str]
+) -> Optional[str]:
+    """Read configs through the config param's callback hook.
+
+    """
+    # Use black's `read_pyproject_toml` for the default
+    result = black.read_pyproject_toml(ctx, param, value)
+    # Use flake8's config file parsing to load setup.cfg, tox.ini, and .blue
+    # The parsing looks both in the project and user directories.
+    finder = flake8_config.ConfigFileFinder('blue')
+    manager = flake8_manager.OptionManager('blue', '0')
+    parser = MergedConfigParser(manager, finder)
+    config = parser.parse()
+    # Merge the configs into Click's `default_map`.
+    default_map: Dict[str, Any] = {}
+    default_map.update(ctx.default_map or {})
+    default_map.update(config)
+    ctx.default_map = default_map
+    return result
 
 
 def main():
@@ -323,4 +332,7 @@ def main():
     target_version_param.help = target_version_param.help.replace(
         'Black', 'Blue'
     )
+    config_param = black.main.params[-1]
+    assert config_param.name == 'config'
+    config_param.callback = read_configs
     black.main()
