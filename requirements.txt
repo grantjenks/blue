@@ -1,6 +1,7 @@
 -e .
 doc8
 flake8
+pytest
 rstcheck
 sphinx
 tox
