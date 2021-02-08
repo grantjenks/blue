@@ -314,7 +314,9 @@ def read_configs(
     # Merge the configs into Click's `default_map`.
     default_map: Dict[str, Any] = {}
     default_map.update(ctx.default_map or {})
-    default_map.update(config)
+    for key, value in config.items():
+        key = key.replace('--', '').replace('-', '_')
+        default_map[key] = value
     ctx.default_map = default_map
     return result
 
