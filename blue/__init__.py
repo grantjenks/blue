@@ -16,6 +16,7 @@ from black import (
     ProtoComment,
     STANDALONE_COMMENT,
     STRING_PREFIX_CHARS,
+    click,
     make_comment,
     prev_siblings_are,
     sub_twice,
@@ -29,7 +30,7 @@ from flake8.options import manager as flake8_manager
 
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from click.decorators import version_option
 
@@ -283,7 +284,7 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     pyproject_toml = toml.load(path_config)
     # Read the "blue" section of pyproject.toml for configs.
     config = pyproject_toml.get("tool", {}).get("blue", {})
-    return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
+    return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}  # noqa: E501
 # fmt: on
 
 
@@ -301,9 +302,7 @@ class MergedConfigParser(flake8_config.MergedConfigParser):
 def read_configs(
     ctx: click.Context, param: click.Parameter, value: Optional[str]
 ) -> Optional[str]:
-    """Read configs through the config param's callback hook.
-
-    """
+    """Read configs through the config param's callback hook."""
     # Use black's `read_pyproject_toml` for the default
     result = black.read_pyproject_toml(ctx, param, value)
     # Use flake8's config file parsing to load setup.cfg, tox.ini, and .blue
