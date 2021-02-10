@@ -82,18 +82,6 @@ def monkey_patch_black(mode: Mode) -> None:
     for function_name, monkey_mode in BLUE_MONKEYPATCHES:
         if monkey_mode is mode:
             setattr(black, function_name, getattr(blue, function_name))
-    # Reach in and monkey patch the --version string.  This is tricky based on
-    # the way click works!  This is highly fragile because the index into the
-    # click parameters is dependent on the decorator order for black's
-    # main().  Because this is a horrible hack, it breaks if you do anything
-    # other than `blue --version`, so don't install this hack unless you need
-    # to.  Fortunately, if you're doing `blue --version` you aren't doing
-    # anything else (and click exits, so we're good).
-    if '--version' in sys.argv:
-        version_string = f'{__version__}, based on black {black.__version__}'
-        black.main.params[-3].callback = version_option(version_string)(
-            black.main
-        )
 
 
 # Because blue makes different choices than black, and all of this code is
@@ -323,6 +311,9 @@ def read_configs(
 
 def main():
     monkey_patch_black(Mode.synchronous)
+    # Reach in and monkey patch the Click options. This is tricky based on the
+    # way Click works! This is highly fragile because the index into the Click
+    # parameters is dependent on the decorator order for Black's main().
     # Change the default line length to 79 characters.
     line_length_param = black.main.params[1]
     assert line_length_param.name == 'line_length'
@@ -333,7 +324,13 @@ def main():
     target_version_param.help = target_version_param.help.replace(
         'Black', 'Blue'
     )
-    config_param = black.main.params[-1]
+    # Change the config param callback to support setup.cfg, tox.ini, etc.
+    config_param = black.main.params[17]
     assert config_param.name == 'config'
     config_param.callback = read_configs
+    # Change the version string by adding a redundant Click `version_option`
+    # decorator on `black.main`. Fortunately the added `version_option` takes
+    # precedence over the existing one.
+    version_string = f'{__version__}, based on black {black.__version__}'
+    version_option(version_string)(black.main)
     black.main()
