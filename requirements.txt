@@ -2,6 +2,7 @@
 doc8
 flake8
 pytest
+pytest-cov
 rstcheck
 sphinx
 tox
