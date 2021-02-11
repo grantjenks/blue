@@ -12,6 +12,8 @@ Changes
   (GH#20)
 - Support multiple config files: pyproject.toml, setup.cfg, tox.ini, and .blue
   (GH#30)
+- Fixed ``blue --version`` (GH#32)
+- Added tests!
 
 
 2021-01-17 (0.5.2)
