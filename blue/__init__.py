@@ -122,7 +122,7 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     Note: Mutates its argument.
     """
     if is_docstring(leaf):
-        black_normalize_string_quotes(leaf)
+        normalize_docstring_quotes(leaf)
         return
 
     # The remainder of this function is copied from black but double quotes are
@@ -274,6 +274,78 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}  # noqa: E501
 # fmt: on
+
+
+def normalize_docstring_quotes(leaf: Leaf) -> None:
+    """Always use triple double quotes for docstrings.
+
+    Note: Mutates its argument.
+    """
+    # Most of this function is copied from black but triple double quotes are
+    # preferred in all places.
+
+    value = leaf.value.lstrip(STRING_PREFIX_CHARS)
+    if value[:3] == '"""':
+        return
+    elif value[:3] == "'''":
+        orig_quote = "'''"
+        new_quote = '"""'
+    elif value[0] == "'":
+        orig_quote = "'"
+        new_quote = '"""'
+    else:
+        orig_quote = '"'
+        new_quote = '"""'
+    first_quote_pos = leaf.value.find(orig_quote)
+    if first_quote_pos == -1:
+        return  # There's an internal error
+
+    prefix = leaf.value[:first_quote_pos]
+    unescaped_new_quote = re.compile(rf'(([^\\]|^)(\\\\)*){new_quote}')
+    escaped_new_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){new_quote}')
+    escaped_orig_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){orig_quote}')
+    body = leaf.value[first_quote_pos + len(orig_quote) : -len(orig_quote)]
+    if 'r' in prefix.casefold():
+        if unescaped_new_quote.search(body):
+            # There's at least one unescaped new_quote in this raw string
+            # so converting is impossible
+            return
+
+        # Do not introduce or remove backslashes in raw strings
+        new_body = body
+    else:
+        # remove unnecessary escapes
+        new_body = sub_twice(escaped_new_quote, rf'\1\2{new_quote}', body)
+        if body != new_body:
+            # Consider the string without unnecessary escapes as the original
+            body = new_body
+            leaf.value = f'{prefix}{orig_quote}{body}{orig_quote}'
+        new_body = sub_twice(
+            escaped_orig_quote, rf'\1\2{orig_quote}', new_body
+        )
+        new_body = sub_twice(
+            unescaped_new_quote, rf'\1\\{new_quote}', new_body
+        )
+    if 'f' in prefix.casefold():
+        matches = re.findall(
+            r'''
+            (?:[^{]|^)\{  # start of the str or a non-{ followed by a single {
+                ([^{].*?)  # contents of the brackets except if begins with {{
+            \}(?:[^}]|$)  # A } followed by end of the string or a non-}
+            ''',
+            new_body,
+            re.VERBOSE,
+        )
+        for m in matches:
+            if '\\' in str(m):
+                # Do not introduce backslashes in interpolated expressions
+                return
+
+    if new_quote == '"""' and new_body[-1:] == '"':
+        # edge case:
+        new_body = new_body[:-1] + '\\"'
+
+    leaf.value = f'{prefix}{new_quote}{new_body}{new_quote}'
 
 
 class MergedConfigParser(flake8_config.MergedConfigParser):
