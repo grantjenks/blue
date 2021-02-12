@@ -5,7 +5,7 @@ Changes
 =======
 
 
-2021-XX-XX (0.6.0)
+2021-02-11 (0.6.0)
 ------------------
 
 - Preserve the whitespace before the hash mark for right hanging comments.
