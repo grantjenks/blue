@@ -35,7 +35,7 @@ from typing import Any, Dict, List, Optional
 from click.decorators import version_option
 
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 
 LOG = logging.getLogger(__name__)
 
@@ -121,6 +121,7 @@ def normalize_string_quotes(leaf: Leaf) -> None:
 
     Note: Mutates its argument.
     """
+
     if is_docstring(leaf):
         black_normalize_string_quotes(leaf)
         return
@@ -129,12 +130,12 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     # swapped with single quotes in all places.
 
     value = leaf.value.lstrip(STRING_PREFIX_CHARS)
-    if value[:3] == "'''":
+    if value[:3] == '"""':
         return
 
-    elif value[:3] == '"""':
-        orig_quote = '"""'
-        new_quote = "'''"
+    elif value[:3] == "'''":
+        orig_quote = "'''"
+        new_quote = '"""'
     elif value[0] == "'":
         orig_quote = "'"
         new_quote = '"'
