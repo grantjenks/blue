@@ -62,3 +62,11 @@ regular_formatting = [
     7,
     8,
 ]
+
+
+def non_docstring_dq_tqs():
+    x = """
+This is a multiline TQS
+It's even got an embedded single quote
+And it has an embedded '''
+\""""

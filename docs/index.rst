@@ -5,6 +5,12 @@ Changes
 =======
 
 
+2021-XX-XX (0.7.0)
+------------------
+
+- Prefer double quotes for non-docstring triple quoted strings (GH#10)
+
+
 2021-02-11 (0.6.0)
 ------------------
 
