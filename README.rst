@@ -47,7 +47,7 @@ Here is a brief list of differences between ``blue`` and ``black``:
 * ``blue`` defaults to single-quoted strings.  This is probably the most
   painful ``black`` choice to our eyes, and the thing that inspired ``blue``.
   We strongly prefer using single quoted strings over double quoted strings
-  for everything *except* docstrings (and triple quoted strings).  Don't ask
+  for everything *except* docstrings and triple quoted strings (TQS).  Don't ask
   us why we prefer double quoted strings for TQS; it just looks better to us!
   For all other strings, ``blue`` defaults to single quoted strings.
 
