@@ -1,0 +1,9 @@
+- id: blue
+  name: blue
+  description: "Blue: The gentler Black"
+  entry: bllue
+  language: python
+  language_version: python3
+  minimum_pre_commit_version: 2.9.2
+  require_serial: true
+  types_or: [python, pyi]
