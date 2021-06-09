@@ -1,6 +1,6 @@
 - id: blue
   name: blue
-  description: "Blue: The gentler Black"
+  description: "Blue: The somewhat less uncompromising Python code formatter"
   entry: blue
   language: python
   language_version: python3
