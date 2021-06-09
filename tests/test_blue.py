@@ -56,5 +56,5 @@ def test_version(capsys, monkeypatch):
     assert exc_info.value.code == 0
     out, err = capsys.readouterr()
     version = f'blue, version {blue.__version__}, based on black {black.__version__}\n'
-    assert out == version
+    assert out.endswith(version)
     assert err == ''
