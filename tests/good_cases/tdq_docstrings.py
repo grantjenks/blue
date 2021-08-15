@@ -7,6 +7,7 @@ Test triple-double-quotes docstrings.
 
 class Test:
     """This is a class docstring."""
+
     pass
 
 
