@@ -22,6 +22,8 @@ def test_good_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
     monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    for path in test_dir.rglob('*'):
+        path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
     with pytest.raises(SystemExit) as exc_info:
         blue.main()
@@ -36,6 +38,8 @@ def test_bad_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
     monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    for path in test_dir.rglob('*'):
+        path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
     with pytest.raises(SystemExit) as exc_info:
         blue.main()
