@@ -19,8 +19,19 @@ from black.comments import ProtoComment, make_comment
 from black.files import tomli
 from black.linegen import LineGenerator as BlackLineGenerator
 from black.lines import Line
-from black.nodes import STANDALONE_COMMENT, is_multiline_string, prev_siblings_are, syms
-from black.strings import STRING_PREFIX_CHARS, fix_docstring, get_string_prefix, normalize_string_prefix, sub_twice
+from black.nodes import (
+    STANDALONE_COMMENT,
+    is_multiline_string,
+    prev_siblings_are,
+    syms,
+)
+from black.strings import (
+    STRING_PREFIX_CHARS,
+    fix_docstring,
+    get_string_prefix,
+    normalize_string_prefix,
+    sub_twice,
+)
 
 from flake8.options import config as flake8_config
 from flake8.options import manager as flake8_manager
@@ -299,7 +310,7 @@ class LineGenerator(BlackLineGenerator):
             elif not docstring_started_empty:
                 docstring = " "
 
-            # *Enforce* triple double quotes at this point.
+            # Enforce triple double quotes at this point.
             quote = '"""'
             leaf.value = prefix + quote + docstring + quote
 
