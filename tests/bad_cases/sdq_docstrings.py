@@ -1,5 +1,5 @@
 "This is a module docstring."
-# Test triple-double-quotes docstrings.
+# Test single-double-quotes docstrings.
 
 
 class Test:

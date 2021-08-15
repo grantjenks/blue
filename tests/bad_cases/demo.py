@@ -1,5 +1,4 @@
 # Copied from the Black Playground at https://black.now.sh/ (MIT LICENSE)
-# And reformated with Blue :)
 
 from seven_dwwarfs import Grumpy, Happy, Sleepy, Bashful, Sneezy, Dopey, Doc
 
