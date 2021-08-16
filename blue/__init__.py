@@ -29,6 +29,7 @@ from black.strings import (
     STRING_PREFIX_CHARS,
     fix_docstring,
     get_string_prefix,
+    lines_with_leading_tabs_expanded,
     normalize_string_prefix,
     sub_twice,
 )
@@ -268,6 +269,17 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
         pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
+
+
+black_strings_fix_docstring = black.strings.fix_docstring
+
+
+def fix_docstring(docstring: str, prefix: str) -> str:
+    new_docstring = black_strings_fix_docstring(docstring, prefix)
+    # Needs special handling for module docstring case!
+    if docstring.endswith('\n') and not new_docstring.endswith('\n'):
+        new_docstring += '\n'
+    return new_docstring
 
 
 class LineGenerator(BlackLineGenerator):
