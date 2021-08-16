@@ -26,9 +26,7 @@ from black.nodes import (
 )
 from black.strings import (
     STRING_PREFIX_CHARS,
-    fix_docstring,
     get_string_prefix,
-    lines_with_leading_tabs_expanded,
     normalize_string_prefix,
     sub_twice,
 )
@@ -47,8 +45,9 @@ __version__ = '0.7.0'
 
 LOG = logging.getLogger(__name__)
 
-black_strings_normalize_string_quotes = black.strings.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
+black_strings_fix_docstring = black.strings.fix_docstring
+black_strings_normalize_string_quotes = black.strings.normalize_string_quotes
 
 # Try not to poison Black's cache directory.
 black.cache.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
@@ -268,9 +267,6 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
         pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
-
-
-black_strings_fix_docstring = black.strings.fix_docstring
 
 
 def fix_docstring(docstring: str, prefix: str) -> str:
