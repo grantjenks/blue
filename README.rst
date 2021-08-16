@@ -46,10 +46,11 @@ Here is a brief list of differences between ``blue`` and ``black``:
 
 * ``blue`` defaults to single-quoted strings.  This is probably the most
   painful ``black`` choice to our eyes, and the thing that inspired ``blue``.
-  We strongly prefer using single quoted strings over double quoted strings
-  for everything *except* docstrings and triple quoted strings (TQS).  Don't ask
-  us why we prefer double quoted strings for TQS; it just looks better to us!
-  For all other strings, ``blue`` defaults to single quoted strings.
+  We strongly prefer using single quoted strings over double quoted strings for
+  everything *except* docstrings and triple quoted strings (TQS).  Don't ask us
+  why we prefer double-quotes for TQS; it just looks better to us!  For all
+  other strings, ``blue`` defaults to single quoted strings.  In the case of
+  docstrings, those always use TQS with double-quotes.
 
 * ``blue`` defaults to line lengths of 79 characters. Nearly every project
   creates a pyproject.toml just to change this one setting so making it
