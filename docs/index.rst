@@ -8,7 +8,10 @@ Changes
 2021-XX-XX (0.7.0)
 ------------------
 
+- Bump dependency on Black to 21.7b0
 - Prefer double quotes for non-docstring triple quoted strings (GH#10)
+- Add support for "py39" as target-version (GH#44)
+- Docstrings now always use triple-double-quoted strings (GH#5)
 
 
 2021-02-11 (0.6.0)

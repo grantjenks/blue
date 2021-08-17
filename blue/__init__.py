@@ -1,7 +1,6 @@
 """Blue
 
 Some folks like black but I prefer blue.
-
 """
 
 import logging
@@ -9,28 +8,35 @@ import re
 import sys
 
 import black
+import black.cache
+import black.comments
+import black.strings
 
-from black import (
-    Leaf,
-    Path,
-    ProtoComment,
+from black import Leaf, Path, click, token
+from black.cache import user_cache_dir
+from black.comments import ProtoComment, make_comment
+from black.files import tomli
+from black.linegen import LineGenerator as BlackLineGenerator
+from black.lines import Line
+from black.nodes import (
     STANDALONE_COMMENT,
-    STRING_PREFIX_CHARS,
-    click,
-    make_comment,
+    is_multiline_string,
     prev_siblings_are,
-    sub_twice,
     syms,
-    token,
-    toml,
-    user_cache_dir,
 )
+from black.strings import (
+    STRING_PREFIX_CHARS,
+    get_string_prefix,
+    normalize_string_prefix,
+    sub_twice,
+)
+
 from flake8.options import config as flake8_config
 from flake8.options import manager as flake8_manager
 
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from click.decorators import version_option
 
@@ -39,11 +45,12 @@ __version__ = '0.7.0'
 
 LOG = logging.getLogger(__name__)
 
-black_normalize_string_quotes = black.normalize_string_quotes
 black_format_file_in_place = black.format_file_in_place
+black_strings_fix_docstring = black.strings.fix_docstring
+black_strings_normalize_string_quotes = black.strings.normalize_string_quotes
 
 # Try not to poison Black's cache directory.
-black.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
+black.cache.CACHE_DIR = Path(user_cache_dir('blue', version=__version__))
 
 
 # Blue works by monkey patching black, so we don't have to duplicate
@@ -68,20 +75,30 @@ class Mode(Enum):
 
 BLUE_MONKEYPATCHES = [
     # Synchronous Monkees.
-    ('format_file_in_place', Mode.synchronous),
-    ('normalize_string_quotes', Mode.synchronous),
-    ('parse_pyproject_toml', Mode.synchronous),
+    (black, 'format_file_in_place', Mode.synchronous),
+    (black, 'parse_pyproject_toml', Mode.synchronous),
+    (black, 'LineGenerator', Mode.synchronous),
+    (black.files, 'parse_pyproject_toml', Mode.synchronous),
+    (black.linegen, 'normalize_string_quotes', Mode.synchronous),
+    (black.strings, 'normalize_string_quotes', Mode.synchronous),
+    (black.trans, 'normalize_string_quotes', Mode.synchronous),
+    (black.comments, 'list_comments', Mode.synchronous),
+    (black.linegen, 'list_comments', Mode.synchronous),
     # Asynchronous Monkees.
-    ('normalize_string_quotes', Mode.asynchronous),
-    ('list_comments', Mode.asynchronous),
+    (black, 'LineGenerator', Mode.asynchronous),
+    (black.linegen, 'normalize_string_quotes', Mode.asynchronous),
+    (black.strings, 'normalize_string_quotes', Mode.asynchronous),
+    (black.trans, 'normalize_string_quotes', Mode.asynchronous),
+    (black.comments, 'list_comments', Mode.asynchronous),
+    (black.linegen, 'list_comments', Mode.asynchronous),
 ]
 
 
 def monkey_patch_black(mode: Mode) -> None:
     blue = sys.modules['blue']
-    for function_name, monkey_mode in BLUE_MONKEYPATCHES:
+    for module, function_name, monkey_mode in BLUE_MONKEYPATCHES:
         if monkey_mode is mode:
-            setattr(black, function_name, getattr(blue, function_name))
+            setattr(module, function_name, getattr(blue, function_name))
 
 
 # Because blue makes different choices than black, and all of this code is
@@ -91,19 +108,15 @@ def monkey_patch_black(mode: Mode) -> None:
 
 # fmt: off
 def is_docstring(leaf: Leaf) -> bool:
-    # Most of this function was copied from Black!
-
     if prev_siblings_are(
         leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
     ):
         return True
 
     # Multiline docstring on the same line as the `def`.
-    if prev_siblings_are(
-        leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]
-    ):
-        # `syms.parameters` is only used in funcdefs and async_funcdefs in the
-        # Python grammar. We're safe to return True without further checks.
+    if prev_siblings_are(leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]):
+        # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
+        # grammar. We're safe to return True without further checks.
         return True
 
     if leaf.parent.prev_sibling is None and leaf.column == 0:
@@ -113,25 +126,15 @@ def is_docstring(leaf: Leaf) -> bool:
     return False
 
 
-def normalize_string_quotes(leaf: Leaf) -> None:
+def normalize_string_quotes(s: str) -> str:
     """Prefer *single* quotes but only if it doesn't cause more escaping.
 
     Adds or removes backslashes as appropriate. Doesn't parse and fix
-    strings nested in f-strings (yet).
-
-    Note: Mutates its argument.
+    strings nested in f-strings.
     """
-
-    if is_docstring(leaf):
-        black_normalize_string_quotes(leaf)
-        return
-
-    # The remainder of this function is copied from black but double quotes are
-    # swapped with single quotes in all places.
-
-    value = leaf.value.lstrip(STRING_PREFIX_CHARS)
+    value = s.lstrip(STRING_PREFIX_CHARS)
     if value[:3] == '"""':
-        return
+        return s
 
     elif value[:3] == "'''":
         orig_quote = "'''"
@@ -142,20 +145,20 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     else:
         orig_quote = '"'
         new_quote = "'"
-    first_quote_pos = leaf.value.find(orig_quote)
+    first_quote_pos = s.find(orig_quote)
     if first_quote_pos == -1:
-        return  # There's an internal error
+        return s  # There's an internal error
 
-    prefix = leaf.value[:first_quote_pos]
+    prefix = s[:first_quote_pos]
     unescaped_new_quote = re.compile(rf'(([^\\]|^)(\\\\)*){new_quote}')
     escaped_new_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){new_quote}')
     escaped_orig_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){orig_quote}')
-    body = leaf.value[first_quote_pos + len(orig_quote) : -len(orig_quote)]
+    body = s[first_quote_pos + len(orig_quote) : -len(orig_quote)]
     if 'r' in prefix.casefold():
         if unescaped_new_quote.search(body):
             # There's at least one unescaped new_quote in this raw string
             # so converting is impossible
-            return
+            return s
 
         # Do not introduce or remove backslashes in raw strings
         new_body = body
@@ -165,27 +168,23 @@ def normalize_string_quotes(leaf: Leaf) -> None:
         if body != new_body:
             # Consider the string without unnecessary escapes as the original
             body = new_body
-            leaf.value = f'{prefix}{orig_quote}{body}{orig_quote}'
-        new_body = sub_twice(
-            escaped_orig_quote, rf'\1\2{orig_quote}', new_body
-        )
-        new_body = sub_twice(
-            unescaped_new_quote, rf'\1\\{new_quote}', new_body
-        )
+            s = f'{prefix}{orig_quote}{body}{orig_quote}'
+        new_body = sub_twice(escaped_orig_quote, rf'\1\2{orig_quote}', new_body)
+        new_body = sub_twice(unescaped_new_quote, rf'\1\\{new_quote}', new_body)
     if 'f' in prefix.casefold():
         matches = re.findall(
-            r'''
-            (?:[^{]|^)\{  # start of the str or a non-{ followed by a single {
+            r"""
+            (?:[^{]|^)\{   # start of the string or a non-{ followed by a single {
                 ([^{].*?)  # contents of the brackets except if begins with {{
-            \}(?:[^}]|$)  # A } followed by end of the string or a non-}
-            ''',
+            \}(?:[^}]|$)   # A } followed by end of the string or a non-}
+            """,
             new_body,
             re.VERBOSE,
         )
         for m in matches:
             if '\\' in str(m):
                 # Do not introduce backslashes in interpolated expressions
-                return
+                return s
 
     if new_quote == "'''" and new_body[-1:] == "'":
         # edge case:
@@ -193,19 +192,12 @@ def normalize_string_quotes(leaf: Leaf) -> None:
     orig_escape_count = body.count('\\')
     new_escape_count = new_body.count('\\')
     if new_escape_count > orig_escape_count:
-        return  # Do not introduce more escaping
+        return s  # Do not introduce more escaping
 
     if new_escape_count == orig_escape_count and orig_quote == "'":
-        return  # Prefer single quotes
+        return s  # Prefer double quotes
 
-    leaf.value = f'{prefix}{new_quote}{new_body}{new_quote}'
-
-
-def format_file_in_place(*args, **kws):
-    # This is a convenient place to monkey patch any function that must be
-    # done after black's asynchronous invocation.
-    monkey_patch_black(Mode.asynchronous)
-    return black_format_file_in_place(*args, **kws)
+    return f'{prefix}{new_quote}{new_body}{new_quote}'
 
 
 # Like black's list_comments() but preserves whitespace leading up to the hash
@@ -215,6 +207,7 @@ def format_file_in_place(*args, **kws):
 # https://github.com/grantjenks/blue/issues/14
 @lru_cache(maxsize=4096)
 def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
+    """Return a list of :class:`ProtoComment` objects parsed from the given `prefix`."""
     result: List[ProtoComment] = []
     if not prefix or "#" not in prefix:
         return result
@@ -268,13 +261,75 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
 def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     """Parse a pyproject toml file, pulling out relevant parts for Black
 
-    If parsing fails, will raise a toml.TomlDecodeError
+    If parsing fails, will raise a tomli.TOMLDecodeError
     """
-    pyproject_toml = toml.load(path_config)
-    # Read the "blue" section of pyproject.toml for configs.
+    with open(path_config, encoding="utf8") as f:
+        pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
     config = pyproject_toml.get("tool", {}).get("blue", {})
-    return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}  # noqa: E501
+    return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
+
+
+def fix_docstring(docstring: str, prefix: str) -> str:
+    new_docstring = black_strings_fix_docstring(docstring, prefix)
+    # Needs special handling for module docstring case!
+    if docstring.endswith('\n') and not new_docstring.endswith('\n'):
+        new_docstring += '\n'
+    return new_docstring
+
+
+class LineGenerator(BlackLineGenerator):
+
+    def visit_STRING(self, leaf: Leaf) -> Iterator[Line]:
+        if is_docstring(leaf) and "\\\n" not in leaf.value:
+            # We're ignoring docstrings with backslash newline escapes because changing
+            # indentation of those changes the AST representation of the code.
+            docstring = normalize_string_prefix(leaf.value, self.remove_u_prefix)
+            prefix = get_string_prefix(docstring)
+            docstring = docstring[len(prefix) :]  # Remove the prefix
+            quote_char = docstring[0]
+            # A natural way to remove the outer quotes is to do:
+            #   docstring = docstring.strip(quote_char)
+            # but that breaks on """""x""" (which is '""x').
+            # So we actually need to remove the first character and the next two
+            # characters but only if they are the same as the first.
+            quote_len = 1 if docstring[1] != quote_char else 3
+            docstring = docstring[quote_len:-quote_len]
+            docstring_started_empty = not docstring
+
+            if is_multiline_string(leaf):
+                indent = " " * 4 * self.current_line.depth
+                docstring = fix_docstring(docstring, indent)
+            else:
+                docstring = docstring.strip()
+
+            if docstring:
+                # Add some padding if the docstring starts / ends with a quote mark.
+                if docstring[0] == quote_char:
+                    docstring = " " + docstring
+                if docstring[-1] == quote_char:
+                    docstring += " "
+                if docstring[-1] == "\\":
+                    backslash_count = len(docstring) - len(docstring.rstrip("\\"))
+                    if backslash_count % 2:
+                        # Odd number of tailing backslashes, add some padding to
+                        # avoid escaping the closing string quote.
+                        docstring += " "
+            elif not docstring_started_empty:
+                docstring = " "
+
+            # Enforce triple double quotes at this point.
+            quote = '"""'
+            leaf.value = prefix + quote + docstring + quote
+
+        yield from self.visit_default(leaf)
 # fmt: on
+
+
+def format_file_in_place(*args, **kws):
+    # This is a convenient place to monkey patch any function that must be
+    # done after black's asynchronous invocation.
+    monkey_patch_black(Mode.asynchronous)
+    return black_format_file_in_place(*args, **kws)
 
 
 class MergedConfigParser(flake8_config.MergedConfigParser):
@@ -326,7 +381,7 @@ def main():
         'Black', 'Blue'
     )
     # Change the config param callback to support setup.cfg, tox.ini, etc.
-    config_param = black.main.params[17]
+    config_param = black.main.params[21]
     assert config_param.name == 'config'
     config_param.callback = read_configs
     # Change the version string by adding a redundant Click `version_option`

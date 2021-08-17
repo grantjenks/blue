@@ -1,3 +1,4 @@
+import asyncio
 import pathlib
 import subprocess
 
@@ -22,8 +23,11 @@ def test_good_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
     monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    for path in test_dir.rglob('*'):
+        path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
     with pytest.raises(SystemExit) as exc_info:
+        asyncio.set_event_loop(asyncio.new_event_loop())
         blue.main()
     assert exc_info.value.code == 0
 
@@ -36,8 +40,11 @@ def test_bad_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
     monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    for path in test_dir.rglob('*'):
+        path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
     with pytest.raises(SystemExit) as exc_info:
+        asyncio.set_event_loop(asyncio.new_event_loop())
         blue.main()
     assert exc_info.value.code == 1
 
