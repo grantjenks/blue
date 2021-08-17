@@ -5,7 +5,7 @@ Changes
 =======
 
 
-2021-XX-XX (0.7.0)
+2021-08-16 (0.7.0)
 ------------------
 
 - Bump dependency on Black to 21.7b0
