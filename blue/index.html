@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+  <head>
+    <title>I blue it!</title>
+    <link href="https://pagecdn.io/lib/normalize/8.0.1/normalize.min.css" rel="stylesheet" crossorigin="anonymous">
+    <style type="text/css" media="screen">
+     html, body { height: 100% }
+     #editor-wrapper {
+         width: 49.5%;
+         height: 99%;
+         display: inline-block;
+         position: relative;
+     }
+     #editor {
+         position: absolute;
+         top: 0;
+         right: 0;
+         bottom: 0;
+         left: 0;
+     }
+     #output-wrapper {
+         width: 49.5%;
+         height: 99%;
+         display: inline-block;
+         position: relative;
+     }
+     #output {
+         position: absolute;
+         top: 0;
+         right: 0;
+         bottom: 0;
+         left: 0;
+     }
+     .logo {
+         display: block;
+         margin: 0 auto;
+     }
+    </style>
+  </head>
+  <body>
+    <h1>$ git commit -m "I blue it!"</h1>
+    <div id="editor-wrapper">
+      <div id="editor">from seven_dwwarfs import Grumpy, Happy, Sleepy, Bashful, Sneezy, Dopey, Doc
+x = {  'a':37,'b':42,
+
+'c':927}
+
+x = 123456789.123456789E123456789
+
+if very_long_variable_name is not None and \
+ very_long_variable_name.field > 0 or \
+ very_long_variable_name.is_debug:
+ z = 'hello '+'world'
+else:
+ world = 'world'
+ a = 'hello {}'.format(world)
+ f = rf'hello {world}'
+if (this
+and that): y = 'hello ''world'#FIXME: https://github.com/python/black/issues/26
+class Foo  (     object  ):
+  def f    (self   ):
+    return       37*-2
+  def g(self, x,y=42):
+      return y
+def f  (   a: List[ int ]) :
+  return      37-a[42-u :  y**3]
+def very_important_function(template: str,*variables,file: os.PathLike,debug:bool=False,):
+    """Applies `variables` to the `template` and writes to `file`."""
+    with open(file, "w") as f:
+     ...
+# fmt: off
+custom_formatting = [
+    0,  1,  2,
+    3,  4,  5,
+    6,  7,  8,
+]
+# fmt: on
+regular_formatting = [
+    0,  1,  2,
+    3,  4,  5,
+    6,  7,  8,
+]</div>
+    </div>
+    <div id="output-wrapper">
+      <div id="output">from seven_dwwarfs import Grumpy, Happy, Sleepy, Bashful, Sneezy, Dopey, Doc
+
+x = {'a': 37, 'b': 42, 'c': 927}
+
+x = 123456789.123456789e123456789
+
+if (
+    very_long_variable_name is not None
+    and very_long_variable_name.field > 0
+    or very_long_variable_name.is_debug
+):
+    z = 'hello ' + 'world'
+else:
+    world = 'world'
+    a = 'hello {}'.format(world)
+    f = rf'hello {world}'
+if this and that:
+    y = 'hello ' 'world'  # FIXME: https://github.com/python/black/issues/26
+
+
+class Foo(object):
+    def f(self):
+        return 37 * -2
+
+    def g(self, x, y=42):
+        return y
+
+
+def f(a: List[int]):
+    return 37 - a[42 - u : y ** 3]
+
+
+def very_important_function(
+    template: str,
+    *variables,
+    file: os.PathLike,
+    debug: bool = False,
+):
+    """Applies `variables` to the `template` and writes to `file`."""
+    with open(file, 'w') as f:
+        ...
+
+
+# fmt: off
+custom_formatting = [
+    0,  1,  2,
+    3,  4,  5,
+    6,  7,  8,
+]
+# fmt: on
+regular_formatting = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+]</div>
+    </div>
+    <script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js" crossorigin="anonymous" integrity="sha256-T5QdmsCQO5z8tBAXMrCZ4f3RX8wVdiA0Fu17FGnU1vU=" ></script>
+    <script src="https://pagecdn.io/lib/ace/1.4.12/mode-python.min.js" crossorigin="anonymous"  ></script>
+    <script src="https://pagecdn.io/lib/ace/1.4.12/theme-solarized_light.min.js" crossorigin="anonymous"  ></script>
+    <script>
+     var editor = ace.edit("editor");
+     editor.setTheme("ace/theme/solarized_light");
+     editor.session.setMode("ace/mode/python");
+
+     var output = ace.edit("output");
+     output.setTheme("ace/theme/solarized_light");
+     output.session.setMode("ace/mode/python");
+     output.setReadOnly(true);
+
+     // Returns a function, that, as long as it continues to be invoked, will not
+     // be triggered. The function will be called after it stops being called for
+     // N milliseconds. If `immediate` is passed, trigger the function on the
+     // leading edge, instead of the trailing.
+     function debounce(func, wait, immediate) {
+	 var timeout;
+	 return function() {
+	     var context = this, args = arguments;
+	     var later = function() {
+		 timeout = null;
+		 if (!immediate) func.apply(context, args);
+	     };
+	     var callNow = immediate && !timeout;
+	     clearTimeout(timeout);
+	     timeout = setTimeout(later, wait);
+	     if (callNow) func.apply(context, args);
+	 };
+     };
+
+     var update = debounce(function () {
+         var data = { content: editor.getValue() };
+         fetch('/blue', {
+             method: 'POST',
+             mode: 'same-origin',
+             headers: {
+                 'Content-Type': 'application/json',
+             },
+             body: JSON.stringify(data),
+         })
+             .then(response => response.json())
+             .then(data => {
+                 output.setValue(data.result);
+             })
+             .catch((error) => {
+                 output.setValue('Error: ' + error);
+             });
+     }, 2000);
+
+     editor.getSession().on('change', function(){
+         update();
+     })
+    </script>
+  </body>
+</html>
