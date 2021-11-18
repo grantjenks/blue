@@ -332,7 +332,13 @@ def format_file_in_place(*args, **kws):
     return black_format_file_in_place(*args, **kws)
 
 
-class MergedConfigParser(flake8_config.MergedConfigParser):
+try:
+    BaseConfigParser = flake8_config.ConfigParser  # flake8 4
+except AttributeError:
+    BaseConfigParser = flake8_config.MergedConfigParser  # flake8 3
+
+
+class MergedConfigParser(BaseConfigParser):
     def _parse_config(self, config_parser, parent=None):
         """Skip option parsing in flake8's config parsing."""
         config_dict = {}
