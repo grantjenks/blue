@@ -41,7 +41,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from click.decorators import version_option
 
 
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 
 LOG = logging.getLogger(__name__)
 
