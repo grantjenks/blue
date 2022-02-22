@@ -5,7 +5,7 @@ Changes
 =======
 
 
-2022-XX-XX (0.8.0)
+2022-02-22 (0.8.0)
 ------------------
 - Fix compatibility with flake8 v4 (GH#58)
 
