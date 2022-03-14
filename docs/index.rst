@@ -5,6 +5,10 @@ Changes
 =======
 
 
+Unreleased
+----------
+- Upgrade dependency on Black to 22.1.0
+
 2022-02-22 (0.8.0)
 ------------------
 - Fix compatibility with flake8 v4 (GH#58)

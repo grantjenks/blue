@@ -30,7 +30,7 @@ class Foo(object):
 
 
 def f(a: List[int]):
-    return 37 - a[42 - u : y ** 3]
+    return 37 - a[42 - u : y**3]
 
 
 def very_important_function(

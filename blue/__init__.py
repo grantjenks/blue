@@ -7,6 +7,45 @@ import logging
 import re
 import sys
 
+# Black 1.0+ ships pre-compiled libraries with mypyc, which we can't monkeypatch
+# like needed. In order to ensure that the original .py files get loaded
+# instead, we create a custom FileFinder that excludes the ExtensionFileLoader,
+# then use that as the file finder for Black's modules.
+
+import importlib
+import importlib.machinery
+
+class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
+    def __init__(self, path: str, *loader_details) -> None:
+        super().__init__(path, *loader_details)
+
+        for hook in sys.path_hooks[1:]:
+            try:
+                self.original_finder = hook(path)
+            except ImportError:
+                continue
+            else:
+                break
+        else:
+            raise ImportError('Failed to find original import finder')
+
+    def find_spec(self, fullname, *args, **kw):
+        if fullname == 'black' or fullname.startswith('black.'):
+            return super(NoMypycBlackFileFinder, self).find_spec(fullname, *args, **kw)
+        else:
+            return self.original_finder.find_spec(fullname, *args, **kw)
+
+    @classmethod
+    def path_hook(cls):
+        return super(NoMypycBlackFileFinder, cls).path_hook(
+            (importlib.machinery.SourceFileLoader, importlib.machinery.SOURCE_SUFFIXES),
+            (importlib.machinery.SourcelessFileLoader, importlib.machinery.BYTECODE_SUFFIXES),
+        )
+
+sys.path_hooks.insert(0, NoMypycBlackFileFinder.path_hook())
+sys.path_importer_cache.clear()
+
+
 import black
 import black.cache
 import black.comments
@@ -36,7 +75,7 @@ from flake8.options import manager as flake8_manager
 
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Pattern
 
 from click.decorators import version_option
 
@@ -126,6 +165,14 @@ def is_docstring(leaf: Leaf) -> bool:
     return False
 
 
+# Re(gex) does actually cache patterns internally but this still improves
+# performance on a long list literal of strings by 5-9% since lru_cache's
+# caching overhead is much lower.
+@lru_cache(maxsize=64)
+def _cached_compile(pattern: str) -> Pattern[str]:
+    return re.compile(pattern)
+
+
 def normalize_string_quotes(s: str) -> str:
     """Prefer *single* quotes but only if it doesn't cause more escaping.
 
@@ -150,9 +197,9 @@ def normalize_string_quotes(s: str) -> str:
         return s  # There's an internal error
 
     prefix = s[:first_quote_pos]
-    unescaped_new_quote = re.compile(rf'(([^\\]|^)(\\\\)*){new_quote}')
-    escaped_new_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){new_quote}')
-    escaped_orig_quote = re.compile(rf'([^\\]|^)\\((?:\\\\)*){orig_quote}')
+    unescaped_new_quote = _cached_compile(rf'(([^\\]|^)(\\\\)*){new_quote}')
+    escaped_new_quote = _cached_compile(rf'([^\\]|^)\\((?:\\\\)*){new_quote}')
+    escaped_orig_quote = _cached_compile(rf'([^\\]|^)\\((?:\\\\)*){orig_quote}')
     body = s[first_quote_pos + len(orig_quote) : -len(orig_quote)]
     if 'r' in prefix.casefold():
         if unescaped_new_quote.search(body):
@@ -174,9 +221,9 @@ def normalize_string_quotes(s: str) -> str:
     if 'f' in prefix.casefold():
         matches = re.findall(
             r"""
-            (?:[^{]|^)\{   # start of the string or a non-{ followed by a single {
+            (?:(?<!\{)|^)\{  # start of the string or a non-{ followed by a single {
                 ([^{].*?)  # contents of the brackets except if begins with {{
-            \}(?:[^}]|$)   # A } followed by end of the string or a non-}
+            \}(?:(?!\})|$)  # A } followed by end of the string or a non-}
             """,
             new_body,
             re.VERBOSE,
@@ -263,7 +310,7 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
 
     If parsing fails, will raise a tomli.TOMLDecodeError
     """
-    with open(path_config, encoding="utf8") as f:
+    with open(path_config, "rb") as f:
         pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
@@ -283,7 +330,7 @@ class LineGenerator(BlackLineGenerator):
         if is_docstring(leaf) and "\\\n" not in leaf.value:
             # We're ignoring docstrings with backslash newline escapes because changing
             # indentation of those changes the AST representation of the code.
-            docstring = normalize_string_prefix(leaf.value, self.remove_u_prefix)
+            docstring = normalize_string_prefix(leaf.value)
             prefix = get_string_prefix(docstring)
             docstring = docstring[len(prefix) :]  # Remove the prefix
             quote_char = docstring[0]
@@ -387,7 +434,7 @@ def main():
         'Black', 'Blue'
     )
     # Change the config param callback to support setup.cfg, tox.ini, etc.
-    config_param = black.main.params[21]
+    config_param = black.main.params[25]
     assert config_param.name == 'config'
     config_param.callback = read_configs
     # Change the version string by adding a redundant Click `version_option`
