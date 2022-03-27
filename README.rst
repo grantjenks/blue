@@ -38,6 +38,7 @@ back, and enjoy even betterly formatted Python code!  You can refer to
 `black's <https://black.readthedocs.io/en/stable/>`_ documentation for
 anything not listed here.
 
+Try it out now using `iblueit.dev <https://iblueit.dev/>`_.
 
 So what's different?
 ====================
@@ -118,3 +119,4 @@ Project details
 * Report bugs and suggestions at: https://github.com/grantjenks/blue/issues
 * Code hosting: https://github.com/grantjenks/blue.git
 * Documentation: https://blue.readthedocs.io/en/latest
+* Try it out: https://iblueit.dev
