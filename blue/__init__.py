@@ -3,17 +3,14 @@
 Some folks like black but I prefer blue.
 """
 
-import logging
-import re
-import sys
-
-# Black 1.0+ ships pre-compiled libraries with mypyc, which we can't monkeypatch
+# Black ships pre-compiled libraries with mypyc, which we can't monkeypatch
 # like needed. In order to ensure that the original .py files get loaded
 # instead, we create a custom FileFinder that excludes the ExtensionFileLoader,
 # then use that as the file finder for Black's modules.
 
 import importlib
 import importlib.machinery
+import sys
 
 class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
     def __init__(self, path: str, *loader_details) -> None:
@@ -45,6 +42,9 @@ class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
 sys.path_hooks.insert(0, NoMypycBlackFileFinder.path_hook())
 sys.path_importer_cache.clear()
 
+
+import logging
+import re
 
 import black
 import black.cache
@@ -297,8 +297,7 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
             comment = make_comment(line)
         result.append(
             ProtoComment(
-                type=comment_type, value=comment, newlines=nlines,
-                consumed=consumed
+                type=comment_type, value=comment, newlines=nlines, consumed=consumed
             )
         )
         nlines = 0
@@ -311,7 +310,7 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     If parsing fails, will raise a tomli.TOMLDecodeError
     """
     with open(path_config, "rb") as f:
-        pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
+        pyproject_toml = tomli.load(f)
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
 
@@ -380,9 +379,9 @@ def format_file_in_place(*args, **kws):
 
 
 try:
-    BaseConfigParser = flake8_config.ConfigParser  # flake8 4
+    BaseConfigParser = flake8_config.ConfigParser  # flake8 v4
 except AttributeError:
-    BaseConfigParser = flake8_config.MergedConfigParser  # flake8 3
+    BaseConfigParser = flake8_config.MergedConfigParser  # flake8 v3
 
 
 class MergedConfigParser(BaseConfigParser):
