@@ -12,6 +12,7 @@ import importlib
 import importlib.machinery
 import sys
 
+
 class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
     def __init__(self, path: str, *loader_details) -> None:
         super().__init__(path, *loader_details)
@@ -28,16 +29,25 @@ class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
 
     def find_spec(self, fullname, *args, **kw):
         if fullname == 'black' or fullname.startswith('black.'):
-            return super(NoMypycBlackFileFinder, self).find_spec(fullname, *args, **kw)
+            return super(NoMypycBlackFileFinder, self).find_spec(
+                fullname, *args, **kw
+            )
         else:
             return self.original_finder.find_spec(fullname, *args, **kw)
 
     @classmethod
     def path_hook(cls):
         return super(NoMypycBlackFileFinder, cls).path_hook(
-            (importlib.machinery.SourceFileLoader, importlib.machinery.SOURCE_SUFFIXES),
-            (importlib.machinery.SourcelessFileLoader, importlib.machinery.BYTECODE_SUFFIXES),
+            (
+                importlib.machinery.SourceFileLoader,
+                importlib.machinery.SOURCE_SUFFIXES,
+            ),
+            (
+                importlib.machinery.SourcelessFileLoader,
+                importlib.machinery.BYTECODE_SUFFIXES,
+            ),
         )
+
 
 sys.path_hooks.insert(0, NoMypycBlackFileFinder.path_hook())
 sys.path_importer_cache.clear()
