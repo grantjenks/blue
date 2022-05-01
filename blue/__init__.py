@@ -12,10 +12,10 @@ import sys
 # instead, we create a custom FileFinder that excludes the ExtensionFileLoader,
 # then use that as the file finder for Black's modules.
 
-import importlib
-import importlib.machinery
+from importlib import machinery
 
-class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
+
+class NoMypycBlackFileFinder(machinery.FileFinder):
     def __init__(self, path: str, *loader_details) -> None:
         super().__init__(path, *loader_details)
 
@@ -38,14 +38,17 @@ class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
     @classmethod
     def path_hook(cls):
         return super(NoMypycBlackFileFinder, cls).path_hook(
-            (importlib.machinery.SourceFileLoader, importlib.machinery.SOURCE_SUFFIXES),
-            (importlib.machinery.SourcelessFileLoader, importlib.machinery.BYTECODE_SUFFIXES),
+            (machinery.SourceFileLoader, machinery.SOURCE_SUFFIXES),
+            (machinery.SourcelessFileLoader, machinery.BYTECODE_SUFFIXES),
         )
+
 
 sys.path_hooks.insert(0, NoMypycBlackFileFinder.path_hook())
 sys.path_importer_cache.clear()
 
 
+# These have to be imported after the import system hackery above, so we just
+# ignore the E402 warning from flake8.
 import black
 import black.cache
 import black.comments
