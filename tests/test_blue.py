@@ -18,10 +18,10 @@ tests_dir = pathlib.Path(__file__).parent.absolute()
 @pytest.mark.parametrize(
     'test_dir',
     [
-        ## 'config_setup',
-        ## 'config_tox',
-        ## 'config_blue',
-        ## 'config_pyproject',
+        'config_setup',
+        'config_tox',
+        'config_blue',
+        'config_pyproject',
         'good_cases',
     ],
 )
