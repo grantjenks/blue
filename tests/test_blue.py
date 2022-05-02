@@ -38,6 +38,11 @@ def test_good_dirs(monkeypatch, test_dir):
         with pytest.raises(SystemExit) as exc_info:
             asyncio.set_event_loop(asyncio.new_event_loop())
             blue.main()
+        # warsaw(2022-05-02): Change back to the srcdir now so that when the
+        # context manager exits, the dst_dir can be properly deleted.  On
+        # Windows, that will fail if the process's cwd is still dst_dir.
+        # Python 3.11 has a contextlib.chdir() function we can use eventually.
+        monkeypatch.chdir(src_dir)
         assert exc_info.value.code == 0
 
 
@@ -48,8 +53,7 @@ def test_good_dirs(monkeypatch, test_dir):
 def test_bad_dirs(monkeypatch, test_dir):
     src_dir = tests_dir / test_dir
     monkeypatch.setattr('sys.argv', ['blue', '--check', '--diff', '.'])
-    with ExitStack() as resources:
-        dst_dir = resources.enter_context(TemporaryDirectory())
+    with TemporaryDirectory() as dst_dir:
         # warsaw(2022-05-01): we can't use shutil.copytree() here until we
         # drop Python 3.7 support because we need dirs_exist_ok and that was
         # added in Python 3.8
@@ -57,9 +61,14 @@ def test_bad_dirs(monkeypatch, test_dir):
             copy(src_dir / path, dst_dir)
         monkeypatch.chdir(dst_dir)
         black.find_project_root.cache_clear()
-        exc_info = resources.enter_context(pytest.raises(SystemExit))
-        asyncio.set_event_loop(asyncio.new_event_loop())
-        blue.main()
+        with pytest.raises(SystemExit) as exc_info:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            blue.main()
+        # warsaw(2022-05-02): Change back to the srcdir now so that when the
+        # context manager exits, the dst_dir can be properly deleted.  On
+        # Windows, that will fail if the process's cwd is still dst_dir.
+        # Python 3.11 has a contextlib.chdir() function we can use eventually.
+        monkeypatch.chdir(src_dir)
         assert exc_info.value.code == 1
 
 
