@@ -45,13 +45,13 @@ def test_good_dirs(monkeypatch, capsys, test_dir):
             sys.stdout.write(out)
             sys.stdout.write(err)
             # Try again, this time with --diff
-            monkeypatch.setattr('sys.argv', ['blue', '--diff', '.'])
+        monkeypatch.setattr('sys.argv', ['blue', '--diff', '.'])
         with pytest.raises(SystemExit) as exc_info:
             asyncio.set_event_loop(asyncio.new_event_loop())
             blue.main()
         diff_exit = exc_info.value.code
         assert diff_exit == 0
-        assert diff_exit == check_exit
+        assert check_exit == diff_exit
 
 
 @pytest.mark.parametrize(
