@@ -325,7 +325,7 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     If parsing fails, will raise a tomli.TOMLDecodeError
     """
     with open(path_config, "rb") as f:
-        pyproject_toml = tomli.load(f)  # type: ignore  # due to deprecated API usage
+        pyproject_toml = tomli.load(f)
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
 
@@ -394,9 +394,9 @@ def format_file_in_place(*args, **kws):
 
 
 try:
-    BaseConfigParser = flake8_config.ConfigParser  # flake8 4
+    BaseConfigParser = flake8_config.ConfigParser              # flake8 v4
 except AttributeError:
-    BaseConfigParser = flake8_config.MergedConfigParser  # flake8 3
+    BaseConfigParser = flake8_config.MergedConfigParser        # flake8 v3
 
 
 class MergedConfigParser(BaseConfigParser):
