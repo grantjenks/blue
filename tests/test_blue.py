@@ -1,9 +1,9 @@
 import asyncio
 import pathlib
-import subprocess
+
+import blue
 
 import black
-import blue
 import pytest
 
 tests_dir = pathlib.Path(__file__).parent.absolute()
@@ -22,7 +22,7 @@ tests_dir = pathlib.Path(__file__).parent.absolute()
 def test_good_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
-    monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    monkeypatch.setattr('sys.argv', ['blue', '--check', '--diff', '.'])
     for path in test_dir.rglob('*'):
         path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
@@ -39,7 +39,7 @@ def test_good_dirs(monkeypatch, test_dir):
 def test_bad_dirs(monkeypatch, test_dir):
     test_dir = tests_dir / test_dir
     monkeypatch.chdir(test_dir)
-    monkeypatch.setattr('sys.argv', ['blue', '--check', '.'])
+    monkeypatch.setattr('sys.argv', ['blue', '--check', '--diff', '.'])
     for path in test_dir.rglob('*'):
         path.touch()  # Invalidate file caches in Blue.
     black.find_project_root.cache_clear()
