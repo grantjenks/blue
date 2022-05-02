@@ -20,7 +20,7 @@ from importlib import machinery
 if 'black' in sys.modules and sys.modules['black'].__file__.endswith('.so'):
     raise RuntimeError(
         'A mypyc-compiled version of black has already been imported. '
-        "This prevents blue from operating properly."
+        'This prevents blue from operating properly.'
     )
 
 
