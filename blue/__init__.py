@@ -9,6 +9,8 @@ import sys
 
 from importlib import machinery
 
+__version__ = '0.9.0'
+
 
 # Black 1.0+ ships pre-compiled libraries with mypyc, which we can't
 # monkeypatch like needed. In order to ensure that the original .py files get
@@ -93,8 +95,6 @@ from typing import Any, Dict, Iterator, List, Optional, Pattern
 
 from click.decorators import version_option
 
-
-__version__ = '0.8.0'
 
 LOG = logging.getLogger(__name__)
 
