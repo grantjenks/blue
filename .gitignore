@@ -19,3 +19,4 @@
 # macOS metadata
 .DS_Store
 /blue/.mypy_cache/
+/.mypy_cache/
