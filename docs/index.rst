@@ -5,7 +5,7 @@ Changes
 =======
 
 
-2022-04-25 (0.9.0)
+2022-05-02 (0.9.0)
 ------------------
 - Fix test suite failures due to a confluence of problems (GH#74)
 - Upgrade dependency on Black to 22.1.0 to support Python 3.10 (GH#67)
