@@ -24,7 +24,7 @@ tests_dir = pathlib.Path(__file__).parent.absolute()
         'good_cases',
     ],
 )
-def test_good_dirs(monkeypatch, capsys, test_dir):
+def test_good_dirs(monkeypatch, test_dir):
     src_dir = tests_dir / test_dir
     monkeypatch.setattr('sys.argv', ['blue', '--check', '--diff', '.'])
     with TemporaryDirectory() as dst_dir:
@@ -45,7 +45,7 @@ def test_good_dirs(monkeypatch, capsys, test_dir):
     'test_dir',
     ['bad_cases'],
 )
-def test_bad_dirs(monkeypatch, capsys, test_dir):
+def test_bad_dirs(monkeypatch, test_dir):
     src_dir = tests_dir / test_dir
     monkeypatch.setattr('sys.argv', ['blue', '--check', '--diff', '.'])
     with ExitStack() as resources:
@@ -63,7 +63,7 @@ def test_bad_dirs(monkeypatch, capsys, test_dir):
         assert exc_info.value.code == 1
 
 
-def test_main(capsys, monkeypatch):
+def test_main(monkeypatch):
     monkeypatch.setattr('sys.argv', ['blue', '--version'])
     with pytest.raises(SystemExit) as exc_info:
         import blue.__main__
