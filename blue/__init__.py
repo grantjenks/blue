@@ -7,23 +7,24 @@ import logging
 import re
 import sys
 
-# Black 1.0+ ships pre-compiled libraries with mypyc, which we can't monkeypatch
-# like needed. In order to ensure that the original .py files get loaded
-# instead, we create a custom FileFinder that excludes the ExtensionFileLoader,
-# then use that as the file finder for Black's modules.
+from importlib import machinery
 
-import importlib
-import importlib.machinery
 
+# Black 1.0+ ships pre-compiled libraries with mypyc, which we can't
+# monkeypatch like needed. In order to ensure that the original .py files get
+# loaded instead, we create a custom FileFinder that excludes the
+# ExtensionFileLoader, then use that as the file finder for Black's modules.
+# However, we should perform this run time check to ensure we're not running
+# in an environment we can't support.
 
 if 'black' in sys.modules and sys.modules['black'].__file__.endswith('.so'):
     raise RuntimeError(
         'A mypyc-compiled version of black has already been imported. '
-        "This limits blue's ability to monkeypatch black."
+        'This prevents blue from operating properly.'
     )
 
 
-class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
+class NoMypycBlackFileFinder(machinery.FileFinder):
     def __init__(self, path: str, *loader_details) -> None:
         super().__init__(path, *loader_details)
 
@@ -48,14 +49,8 @@ class NoMypycBlackFileFinder(importlib.machinery.FileFinder):
     @classmethod
     def path_hook(cls):
         return super(NoMypycBlackFileFinder, cls).path_hook(
-            (
-                importlib.machinery.SourceFileLoader,
-                importlib.machinery.SOURCE_SUFFIXES,
-            ),
-            (
-                importlib.machinery.SourcelessFileLoader,
-                importlib.machinery.BYTECODE_SUFFIXES,
-            ),
+            (machinery.SourceFileLoader, machinery.SOURCE_SUFFIXES),
+            (machinery.SourcelessFileLoader, machinery.BYTECODE_SUFFIXES),
         )
 
 
@@ -63,6 +58,8 @@ sys.path_hooks.insert(0, NoMypycBlackFileFinder.path_hook())
 sys.path_importer_cache.clear()
 
 
+# These have to be imported after the import system hackery above, so we just
+# ignore the E402 warning from flake8.
 import black
 import black.cache
 import black.comments

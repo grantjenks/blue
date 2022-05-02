@@ -5,9 +5,12 @@ Changes
 =======
 
 
-Unreleased
-----------
-- Upgrade dependency on Black to 22.1.0
+2022-04-25 (0.9.0)
+------------------
+- Fix test suite failures due to a confluence of problems (GH#74)
+- Upgrade dependency on Black to 22.1.0 to support Python 3.10 (GH#67)
+- Add link to demo site at https://iblueit.dev (GH#69)
+
 
 2022-02-22 (0.8.0)
 ------------------
