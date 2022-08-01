@@ -5,6 +5,15 @@ Changes
 =======
 
 
+2022-08-01 (0.9.1)
+------------------
+- blue is incompatible with flake8 v5 (GH#78) due to changes in the way flake8
+  parses its config files.  For now, pin the flake8 dependency <5.0.0 (GH#79).
+- Add support for testing against Python 3.10 and 3.11 in tox.ini, and fix an
+  incompatibility with the rstcheck command line.
+- Bump copyright years.
+
+
 2022-05-02 (0.9.0)
 ------------------
 - Fix test suite failures due to a confluence of problems (GH#74)
