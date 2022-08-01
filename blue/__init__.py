@@ -9,7 +9,7 @@ import sys
 
 from importlib import machinery
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 
 
 # Black 1.0+ ships pre-compiled libraries with mypyc, which we can't
