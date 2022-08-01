@@ -1,6 +1,6 @@
 -e .
 doc8
-flake8
+flake8<5.0.0
 pytest
 pytest-cov
 rstcheck
