@@ -7,6 +7,7 @@ import logging
 import re
 import sys
 
+from dataclasses import dataclass
 from importlib import machinery
 
 __version__ = '0.9.1'
@@ -69,7 +70,7 @@ import black.strings
 
 from black import Leaf, Path, click, token
 from black.cache import user_cache_dir
-from black.comments import ProtoComment, make_comment
+from black.comments import ProtoComment, LN, make_comment
 from black.files import tomli
 from black.linegen import LineGenerator as BlackLineGenerator
 from black.lines import Line
@@ -144,6 +145,8 @@ BLUE_MONKEYPATCHES = [
     (black.trans, 'normalize_string_quotes', Mode.asynchronous),
     (black.comments, 'list_comments', Mode.asynchronous),
     (black.linegen, 'list_comments', Mode.asynchronous),
+    (black.comments, 'generate_comments', Mode.asynchronous),
+    (black.linegen, 'generate_comments', Mode.asynchronous),
 ]
 
 
@@ -261,24 +264,35 @@ def normalize_string_quotes(s: str) -> str:
     return f'{prefix}{new_quote}{new_body}{new_quote}'
 
 
+@dataclass
+class WSProtoComment(ProtoComment):
+    whitespace: int  # how much whitespace originally preceded the comment
+
+
+def generate_comments(leaf: LN) -> Iterator[Leaf]:
+    for pc in list_comments(leaf.prefix, is_endmarker=leaf.type == token.ENDMARKER):
+        yield Leaf(pc.type, pc.value, prefix="\n" * pc.newlines + " " * pc.whitespace)
+
+
 # Like black's list_comments() but preserves whitespace leading up to the hash
 # mark.  Because what we really need to do is restore the whitespace after the
 # line.lstrip() statement, there really is no good way to more narrowly
 # monkeypatch.  This would be a good hook to install.  See
 # https://github.com/grantjenks/blue/issues/14
 @lru_cache(maxsize=4096)
-def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
+def list_comments(prefix: str, *, is_endmarker: bool) -> List[WSProtoComment]:
     """Return a list of :class:`ProtoComment` objects parsed from the given `prefix`."""
-    result: List[ProtoComment] = []
+    result: List[WSProtoComment] = []
     if not prefix or "#" not in prefix:
         return result
 
     consumed = 0
     nlines = 0
     ignored_lines = 0
-    for index, orig_line in enumerate(prefix.split("\n")):
-        consumed += len(orig_line) + 1  # adding the length of the split '\n'
-        line = orig_line.lstrip()
+    for index, line in enumerate(prefix.split("\n")):
+        orig_len = len(line)
+        consumed += orig_len + 1  # adding the length of the split '\n'
+        line = line.lstrip()
         if not line:
             nlines += 1
         if not line.startswith("#"):
@@ -293,26 +307,14 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
             comment_type = token.COMMENT  # simple trailing comment
         else:
             comment_type = STANDALONE_COMMENT
-        # Restore the original whitespace, but only for hanging comments.  We
-        # use a heuristic to figure out hanging comments since that information
-        # isn't explicitly passed in here (no, `is_endmarker` doesn't tell us,
-        # apparently).  Hanging comments seem to not have a newline in prefix.
-        #
-        # Note however that the whitespace() function in black will add back
-        # two leading spaces (see DOUBLESPACE).  Rather than monkey patch the
-        # entire function, let's just remove up to two spaces before the hash
-        # character.
-        if '\n' not in prefix:
-            whitespace = orig_line[:-len(line)]
-            if len(whitespace) >= 2:
-                whitespace = whitespace[2:]
-            comment = whitespace + make_comment(line)
-        else:
-            comment = make_comment(line)
+        comment = make_comment(line)
+        # Track the original whitespace for a line, adjusting down for the two
+        # spaces black prepends
+        whitespace = max(0, orig_len - len(line) - 2)
         result.append(
-            ProtoComment(
+            WSProtoComment(
                 type=comment_type, value=comment, newlines=nlines,
-                consumed=consumed
+                consumed=consumed, whitespace=whitespace,
             )
         )
         nlines = 0
