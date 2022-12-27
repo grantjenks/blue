@@ -70,7 +70,7 @@ import black.strings
 from black import Leaf, Path, click, token
 from black.cache import user_cache_dir
 from black.comments import ProtoComment, make_comment
-from black.files import tomli
+from black.files import tomllib
 from black.linegen import LineGenerator as BlackLineGenerator
 from black.lines import Line
 from black.nodes import (
@@ -267,7 +267,9 @@ def normalize_string_quotes(s: str) -> str:
 # monkeypatch.  This would be a good hook to install.  See
 # https://github.com/grantjenks/blue/issues/14
 @lru_cache(maxsize=4096)
-def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
+def list_comments(
+    prefix: str, *, is_endmarker: bool, preview: bool
+) -> List[ProtoComment]:
     """Return a list of :class:`ProtoComment` objects parsed from the given `prefix`."""
     result: List[ProtoComment] = []
     if not prefix or "#" not in prefix:
@@ -306,9 +308,9 @@ def list_comments(prefix: str, *, is_endmarker: bool) -> List[ProtoComment]:
             whitespace = orig_line[:-len(line)]
             if len(whitespace) >= 2:
                 whitespace = whitespace[2:]
-            comment = whitespace + make_comment(line)
+            comment = whitespace + make_comment(line, preview=preview)
         else:
-            comment = make_comment(line)
+            comment = make_comment(line, preview=preview)
         result.append(
             ProtoComment(
                 type=comment_type, value=comment, newlines=nlines,
@@ -325,7 +327,8 @@ def parse_pyproject_toml(path_config: str) -> Dict[str, Any]:
     If parsing fails, will raise a tomli.TOMLDecodeError
     """
     with open(path_config, "rb") as f:
-        pyproject_toml = tomli.load(f)
+        # pyproject_toml = tomli.load(f)
+        pyproject_toml = tomllib.load(f)
     config = pyproject_toml.get("tool", {}).get("blue", {})
     return {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
 
@@ -448,7 +451,7 @@ def main():
         'Black', 'Blue'
     )
     # Change the config param callback to support setup.cfg, tox.ini, etc.
-    config_param = black.main.params[25]
+    config_param = black.main.params[26]  # omfg
     assert config_param.name == 'config'
     config_param.callback = read_configs
     # Change the version string by adding a redundant Click `version_option`
