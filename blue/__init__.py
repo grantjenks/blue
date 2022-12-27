@@ -278,7 +278,11 @@ def list_comments(
     consumed = 0
     nlines = 0
     ignored_lines = 0
-    for index, orig_line in enumerate(prefix.split("\n")):
+
+    all_lines = re.split("\r?\n", prefix)
+    list_hanging_comment = len(all_lines) == 2 and not all_lines[1].strip()
+
+    for index, orig_line in enumerate(all_lines):
         consumed += len(orig_line) + 1  # adding the length of the split '\n'
         line = orig_line.lstrip()
         if not line:
@@ -295,26 +299,31 @@ def list_comments(
             comment_type = token.COMMENT  # simple trailing comment
         else:
             comment_type = STANDALONE_COMMENT
-        # Restore the original whitespace, but only for hanging comments.  We
-        # use a heuristic to figure out hanging comments since that information
+        # Restore the original whitespace, but only for hanging comments. We
+        # use # heuristics to figure out hanging comments since that information
         # isn't explicitly passed in here (no, `is_endmarker` doesn't tell us,
-        # apparently).  Hanging comments seem to not have a newline in prefix.
+        # apparently).
+        #
+        # Heuristics are:
+        # 1. Hanging comment does not have a newline in prefix.
+        # 2. Or it has newline, followed by empty string or string w/ just spaces.
         #
         # Note however that the whitespace() function in black will add back
         # two leading spaces (see DOUBLESPACE).  Rather than monkey patch the
         # entire function, let's just remove up to two spaces before the hash
         # character.
-        if '\n' not in prefix:
+
+        if '\n' not in prefix or list_hanging_comment:
             whitespace = orig_line[:-len(line)]
             if len(whitespace) >= 2:
                 whitespace = whitespace[2:]
             comment = whitespace + make_comment(line, preview=preview)
         else:
             comment = make_comment(line, preview=preview)
+
         result.append(
             ProtoComment(
-                type=comment_type, value=comment, newlines=nlines,
-                consumed=consumed
+                type=comment_type, value=comment, newlines=nlines, consumed=consumed
             )
         )
         nlines = 0
