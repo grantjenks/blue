@@ -37,7 +37,7 @@ setup(
     packages=['blue'],
     tests_require=['tox'],
     cmdclass={'test': Tox},
-    install_requires=['black==22.1.0', 'flake8>=3.8,<5.0.0'],
+    install_requires=['black==22.1.0'],
     project_urls={
         'Documentation': 'https://blue.readthedocs.io/en/latest',
         'Source': 'https://github.com/grantjenks/blue.git',
