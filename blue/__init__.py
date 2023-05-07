@@ -72,7 +72,7 @@ import black.strings
 from black import Leaf, Path, click, token
 from black.cache import user_cache_dir
 from black.comments import ProtoComment, make_comment
-from black.files import tomli
+from black.files import tomli, find_user_pyproject_toml
 from black.linegen import LineGenerator as BlackLineGenerator
 from black.lines import Line
 from black.nodes import (
@@ -394,12 +394,42 @@ def format_file_in_place(*args, **kws):
 
 def load_configs_from_file() -> Dict[str, Any]:
     """Parses supported config files using configparser"""
-    config_dict = {}
-    pwd = Path('.').resolve()
     supported_config_files = ('setup.cfg', 'tox.ini', '.blue')
-    filenames = [(pwd / config_file) for config_file in supported_config_files]
+    config_dict = {}
+    pwd = Path.cwd()
     cfg = ConfigParser()
-    cfg.read(filenames)
+
+    config_file_found = False
+
+    # search config files from pwd and its parents
+    for dir in (pwd, *pwd.parents):
+        filenames = [
+            (dir / config_file) for config_file in supported_config_files
+        ]
+        files_read = cfg.read(filenames)
+
+        # if config file was read, stop search
+        if len(files_read) > 0:
+            config_file_found = True
+            break
+
+    if not config_file_found:
+        # config file not found yet
+        # last try using top-level user configuration for black
+        try:
+            top_level_full_path = find_user_pyproject_toml()
+
+            top_level_dir = top_level_full_path.parent
+
+            filenames = [
+                (top_level_dir / config_file)
+                for config_file in supported_config_files
+            ]
+
+            cfg.read(filenames)
+        except PermissionError:
+            # ignore user level config directory if no access permission was given
+            pass
 
     if cfg.has_section('blue'):
         config_dict.update(cfg.items('blue'))
