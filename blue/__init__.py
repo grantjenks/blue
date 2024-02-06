@@ -448,7 +448,7 @@ def main():
         'Black', 'Blue'
     )
     # Change the config param callback to support setup.cfg, tox.ini, etc.
-    config_param = black.main.params[25]
+    config_param = black.main.params[28]
     assert config_param.name == 'config'
     config_param.callback = read_configs
     # Change the version string by adding a redundant Click `version_option`
